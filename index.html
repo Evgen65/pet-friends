@@ -79,7 +79,7 @@
             </div>
             <div class="controls-bar">
                 <div class="search-box">
-                    <input type="text" id="search-found" placeholder="Search by name, city, description…" class="search-input">
+                    <input type="text" id="search-found" placeholder="Search by name, city, description…" class="search-input" data-i18n-placeholder="search.found">
                 </div>
                 <div class="filter-group">
                     <select id="filter-type-found" class="filter-select">
@@ -134,6 +134,23 @@
                         <label for="found-desc">Description <span class="req">*</span></label>
                         <textarea id="found-desc" name="description" rows="3" placeholder="Describe the pet, where you found it, any markings…" required></textarea>
                     </div>
+                    <div class="form-group">
+                        <label id="photo-label-found">Photo</label>
+                        <div class="photo-upload-area">
+                            <img id="photo-preview-found" class="photo-preview hidden" alt="">
+                            <div id="photo-placeholder-found" class="photo-upload-placeholder">
+                                <span class="photo-placeholder-icon">📷</span>
+                            </div>
+                        </div>
+                        <div class="photo-upload-controls">
+                            <button type="button" class="btn btn-secondary btn-photo" id="photoBtnChoose-found">Choose Photo</button>
+                            <button type="button" class="btn btn-secondary btn-photo hidden" id="photoBtnReplace-found">Replace Photo</button>
+                            <button type="button" class="btn btn-secondary btn-photo hidden" id="photoBtnRemove-found">Remove Photo</button>
+                            <input type="file" id="photoInput-found" accept="image/jpeg,image/png,image/webp" class="photo-file-input">
+                        </div>
+                        <span class="photo-hint">JPG, PNG or WEBP. Maximum size: 2 MB.</span>
+                        <span class="field-error" id="photo-error-found"></span>
+                    </div>
                     <div class="form-row">
                         <div class="form-group">
                             <label for="found-email">Contact Email</label>
@@ -149,6 +166,14 @@
                         <select id="found-status" name="status">
                             <option value="Open">Open</option>
                             <option value="Resolved">Resolved</option>
+                        </select>
+                    </div>
+                    <div class="form-group half">
+                        <label for="found-contentLanguage">Listing Language</label>
+                        <select id="found-contentLanguage" name="contentLanguage">
+                            <option value="en">English</option>
+                            <option value="ru">Russian</option>
+                            <option value="he">Hebrew</option>
                         </select>
                     </div>
                     <div class="form-actions">
@@ -169,7 +194,7 @@
             </div>
             <div class="controls-bar">
                 <div class="search-box">
-                    <input type="text" id="search-lost" placeholder="Search by name, city, description…" class="search-input">
+                    <input type="text" id="search-lost" placeholder="Search by name, city, description…" class="search-input" data-i18n-placeholder="search.lost">
                 </div>
                 <div class="filter-group">
                     <select id="filter-type-lost" class="filter-select">
@@ -224,6 +249,23 @@
                         <label for="lost-desc">Description <span class="req">*</span></label>
                         <textarea id="lost-desc" name="description" rows="3" placeholder="Describe your pet, last seen location, any collar or markings…" required></textarea>
                     </div>
+                    <div class="form-group">
+                        <label id="photo-label-lost">Photo</label>
+                        <div class="photo-upload-area">
+                            <img id="photo-preview-lost" class="photo-preview hidden" alt="">
+                            <div id="photo-placeholder-lost" class="photo-upload-placeholder">
+                                <span class="photo-placeholder-icon">📷</span>
+                            </div>
+                        </div>
+                        <div class="photo-upload-controls">
+                            <button type="button" class="btn btn-secondary btn-photo" id="photoBtnChoose-lost">Choose Photo</button>
+                            <button type="button" class="btn btn-secondary btn-photo hidden" id="photoBtnReplace-lost">Replace Photo</button>
+                            <button type="button" class="btn btn-secondary btn-photo hidden" id="photoBtnRemove-lost">Remove Photo</button>
+                            <input type="file" id="photoInput-lost" accept="image/jpeg,image/png,image/webp" class="photo-file-input">
+                        </div>
+                        <span class="photo-hint">JPG, PNG or WEBP. Maximum size: 2 MB.</span>
+                        <span class="field-error" id="photo-error-lost"></span>
+                    </div>
                     <div class="form-row">
                         <div class="form-group">
                             <label for="lost-email">Contact Email</label>
@@ -239,6 +281,14 @@
                         <select id="lost-status" name="status">
                             <option value="Open">Open</option>
                             <option value="Resolved">Resolved</option>
+                        </select>
+                    </div>
+                    <div class="form-group half">
+                        <label for="lost-contentLanguage">Listing Language</label>
+                        <select id="lost-contentLanguage" name="contentLanguage">
+                            <option value="en">English</option>
+                            <option value="ru">Russian</option>
+                            <option value="he">Hebrew</option>
                         </select>
                     </div>
                     <div class="form-actions">
@@ -259,7 +309,7 @@
             </div>
             <div class="controls-bar">
                 <div class="search-box">
-                    <input type="text" id="search-forHome" placeholder="Search by name, city, description…" class="search-input">
+                    <input type="text" id="search-forHome" placeholder="Search by name, city, description…" class="search-input" data-i18n-placeholder="search.forHome">
                 </div>
                 <div class="filter-group">
                     <select id="filter-type-forHome" class="filter-select">
@@ -314,6 +364,23 @@
                         <label for="forHome-desc">Description <span class="req">*</span></label>
                         <textarea id="forHome-desc" name="description" rows="3" placeholder="Tell us about the pet, their personality, special needs…" required></textarea>
                     </div>
+                    <div class="form-group">
+                        <label id="photo-label-forHome">Photo</label>
+                        <div class="photo-upload-area">
+                            <img id="photo-preview-forHome" class="photo-preview hidden" alt="">
+                            <div id="photo-placeholder-forHome" class="photo-upload-placeholder">
+                                <span class="photo-placeholder-icon">📷</span>
+                            </div>
+                        </div>
+                        <div class="photo-upload-controls">
+                            <button type="button" class="btn btn-secondary btn-photo" id="photoBtnChoose-forHome">Choose Photo</button>
+                            <button type="button" class="btn btn-secondary btn-photo hidden" id="photoBtnReplace-forHome">Replace Photo</button>
+                            <button type="button" class="btn btn-secondary btn-photo hidden" id="photoBtnRemove-forHome">Remove Photo</button>
+                            <input type="file" id="photoInput-forHome" accept="image/jpeg,image/png,image/webp" class="photo-file-input">
+                        </div>
+                        <span class="photo-hint">JPG, PNG or WEBP. Maximum size: 2 MB.</span>
+                        <span class="field-error" id="photo-error-forHome"></span>
+                    </div>
                     <div class="form-row">
                         <div class="form-group">
                             <label for="forHome-email">Contact Email</label>
@@ -329,6 +396,14 @@
                         <select id="forHome-status" name="status">
                             <option value="Available">Available</option>
                             <option value="Adopted">Adopted</option>
+                        </select>
+                    </div>
+                    <div class="form-group half">
+                        <label for="forHome-contentLanguage">Listing Language</label>
+                        <select id="forHome-contentLanguage" name="contentLanguage">
+                            <option value="en">English</option>
+                            <option value="ru">Russian</option>
+                            <option value="he">Hebrew</option>
                         </select>
                     </div>
                     <div class="form-actions">
@@ -349,7 +424,7 @@
             </div>
             <div class="controls-bar">
                 <div class="search-box">
-                    <input type="text" id="search-adopt" placeholder="Search by city, description…" class="search-input">
+                    <input type="text" id="search-adopt" placeholder="Search by city, description…" class="search-input" data-i18n-placeholder="search.adopt">
                 </div>
                 <div class="filter-group">
                     <select id="filter-type-adopt" class="filter-select">
@@ -404,6 +479,23 @@
                         <label for="adopt-desc">About You &amp; Your Home <span class="req">*</span></label>
                         <textarea id="adopt-desc" name="description" rows="3" placeholder="Tell us about yourself, your home, experience with pets…" required></textarea>
                     </div>
+                    <div class="form-group">
+                        <label id="photo-label-adopt">Photo</label>
+                        <div class="photo-upload-area">
+                            <img id="photo-preview-adopt" class="photo-preview hidden" alt="">
+                            <div id="photo-placeholder-adopt" class="photo-upload-placeholder">
+                                <span class="photo-placeholder-icon">📷</span>
+                            </div>
+                        </div>
+                        <div class="photo-upload-controls">
+                            <button type="button" class="btn btn-secondary btn-photo" id="photoBtnChoose-adopt">Choose Photo</button>
+                            <button type="button" class="btn btn-secondary btn-photo hidden" id="photoBtnReplace-adopt">Replace Photo</button>
+                            <button type="button" class="btn btn-secondary btn-photo hidden" id="photoBtnRemove-adopt">Remove Photo</button>
+                            <input type="file" id="photoInput-adopt" accept="image/jpeg,image/png,image/webp" class="photo-file-input">
+                        </div>
+                        <span class="photo-hint">JPG, PNG or WEBP. Maximum size: 2 MB.</span>
+                        <span class="field-error" id="photo-error-adopt"></span>
+                    </div>
                     <div class="form-row">
                         <div class="form-group">
                             <label for="adopt-email">Contact Email</label>
@@ -419,6 +511,14 @@
                         <select id="adopt-status" name="status">
                             <option value="Open">Open</option>
                             <option value="Matched">Matched</option>
+                        </select>
+                    </div>
+                    <div class="form-group half">
+                        <label for="adopt-contentLanguage">Listing Language</label>
+                        <select id="adopt-contentLanguage" name="contentLanguage">
+                            <option value="en">English</option>
+                            <option value="ru">Russian</option>
+                            <option value="he">Hebrew</option>
                         </select>
                     </div>
                     <div class="form-actions">
@@ -439,7 +539,7 @@
             </div>
             <div class="controls-bar">
                 <div class="search-box">
-                    <input type="text" id="search-stories" placeholder="Search stories…" class="search-input">
+                    <input type="text" id="search-stories" placeholder="Search stories…" class="search-input" data-i18n-placeholder="search.stories">
                 </div>
                 <div class="filter-group">
                     <select id="filter-cat-stories" class="filter-select">

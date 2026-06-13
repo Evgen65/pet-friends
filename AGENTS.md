@@ -116,9 +116,18 @@ Students can test:
 - **Internal data values must remain stable in English.** `type` (`Cat`, `Dog`, `Bird`, `Other`), `status` (`Open`, `Resolved`, `Available`, `Adopted`, `Matched`), and `category` (`Funny`, `Touching`, `Useful`) are stored and compared as English strings. Do not translate them.
 - **Only visible UI labels should be translated.** Use `data-i18n` attributes on display elements. Never use translated strings in JavaScript logic, localStorage keys, filter comparisons, or CSS class names.
 
+## Photo Rules
+
+- **One optional photo per listing** in the four core sections (Found, Lost, For Home, Adopt). Stories are not included.
+- **User-uploaded photos are resized before localStorage storage.** Canvas resizes to a maximum of 1200 × 1200 px and re-encodes as WebP (JPEG fallback). Only JPEG, PNG, and WEBP inputs are accepted; maximum original file size is 2 MB.
+- **Seeded images use relative asset paths** (`assets/images/{section}-sample.webp`). They are stored as `{ source: "asset", url: "..." }`. The files must be placed manually — the app handles a missing file gracefully via `onerror` fallback to `pet-placeholder.svg`.
+- **Code must support listings with and without photos.** `getPhotoSource(listing)` returns the data URL (local), the asset URL (seeded), or `assets/images/pet-placeholder.svg` (no photo). Every card shows a photo area; the placeholder is used when no photo exists.
+- **Server storage will later replace Data URLs.** When a backend is added, replace the `source: "local"` branch in `getPhotoSource` with a URL returned by the upload endpoint. The data model supports this without schema changes.
+- **Do not introduce multiple-image galleries** without explicit permission. The data model field is `photo` (singular object), not an array.
+
 ## Suggested Future Enhancements (Ask the User First)
 
-- Image upload (requires a backend or a third-party service such as Cloudinary)
+- Replace Data URL photo storage with server-side upload (Cloudinary, S3, etc.)
 - Real email delivery for the contact form
 - Pagination or infinite scroll for large data sets
 - User accounts and authentication

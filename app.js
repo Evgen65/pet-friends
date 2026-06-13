@@ -12,12 +12,17 @@ const KEYS = {
 };
 
 function load(key) {
-    try { return JSON.parse(localStorage.getItem(KEYS[key]) || '[]'); }
+    try {
+        const parsed = JSON.parse(localStorage.getItem(KEYS[key]) || '[]');
+        if (key === 'stories') return parsed;
+        return parsed.map(item => ({ ...item, photo: normalizePhoto(item.photo) }));
+    }
     catch { return []; }
 }
 
 function save(key, data) {
     localStorage.setItem(KEYS[key], JSON.stringify(data));
+    return true;
 }
 
 function genId() {
@@ -150,6 +155,42 @@ const TRANSLATIONS = {
 
         'contact.success.title': 'Message Sent!',
         'contact.success.text':  'Thank you for reaching out. We\'ll get back to you within 2 business days.',
+
+        'card.petName':     'Pet Name',
+        'card.petType':     'Pet Type',
+        'card.breed':       'Breed',
+        'card.city':        'City',
+        'card.dateFound':   'Date Found',
+        'card.dateLost':    'Date Lost',
+        'card.datePosted':  'Date Posted',
+        'card.description': 'Description',
+        'card.contactEmail':'Contact Email',
+        'card.contactPhone':'Contact Phone',
+        'card.status':      'Status',
+
+        'form.label.petName':      'Pet Name',
+        'form.label.petNameTitle': 'Pet Name / Title',
+        'form.label.listingTitle': 'Listing Title',
+        'form.label.aboutHome':    'About You & Your Home',
+        'btn.update.listing':      'Update Listing',
+
+        'form.label.contentLang': 'Listing Language',
+        'contentLang.en':         'English',
+        'contentLang.ru':         'Russian',
+        'contentLang.he':         'Hebrew',
+        'card.contentLang':       'Listing language',
+
+        'photo.label':       'Photo',
+        'photo.choose':      'Choose Photo',
+        'photo.replace':     'Replace Photo',
+        'photo.remove':      'Remove Photo',
+        'photo.hint':        'JPG, PNG or WEBP. Maximum size: 2 MB.',
+        'photo.error.type':  'Only JPG, PNG and WEBP images are supported.',
+        'photo.error.size':  'The image must not exceed 2 MB.',
+        'photo.error.read':  'The selected image could not be read.',
+        'photo.alt.generic': 'Pet photo',
+        'error.storage':     'The image could not be saved because browser storage is full. Try a smaller image or remove an existing photo.',
+        'error.save':        'Could not save. Please try again.',
     },
 
     ru: {
@@ -264,14 +305,50 @@ const TRANSLATIONS = {
         'empty.adopt':   'Запросов на усыновление пока нет. Будьте первым!',
         'empty.stories': 'Историй пока нет. Поделитесь первой!',
 
-        'search.found':   'Поиск по названию, городу, описанию…',
-        'search.lost':    'Поиск по названию, городу, описанию…',
-        'search.forHome': 'Поиск по названию, городу, описанию…',
-        'search.adopt':   'Поиск по городу, описанию…',
+        'search.found':   'Поиск по имени, городу или описанию…',
+        'search.lost':    'Поиск по имени, городу или описанию…',
+        'search.forHome': 'Поиск по имени, городу или описанию…',
+        'search.adopt':   'Поиск по городу или описанию…',
         'search.stories': 'Поиск историй…',
 
         'contact.success.title': 'Сообщение отправлено!',
         'contact.success.text':  'Спасибо за обращение. Мы ответим в течение 2 рабочих дней.',
+
+        'card.petName':     'Имя питомца',
+        'card.petType':     'Вид животного',
+        'card.breed':       'Порода',
+        'card.city':        'Город',
+        'card.dateFound':   'Дата находки',
+        'card.dateLost':    'Дата пропажи',
+        'card.datePosted':  'Дата публикации',
+        'card.description': 'Описание',
+        'card.contactEmail':'Контактный email',
+        'card.contactPhone':'Контактный телефон',
+        'card.status':      'Статус',
+
+        'form.label.petName':      'Имя питомца',
+        'form.label.petNameTitle': 'Имя питомца / заголовок',
+        'form.label.listingTitle': 'Заголовок объявления',
+        'form.label.aboutHome':    'О вас и вашем доме',
+        'btn.update.listing':      'Обновить объявление',
+
+        'form.label.contentLang': 'Язык объявления',
+        'contentLang.en':         'Английский',
+        'contentLang.ru':         'Русский',
+        'contentLang.he':         'Иврит',
+        'card.contentLang':       'Язык объявления',
+
+        'photo.label':       'Фотография',
+        'photo.choose':      'Выбрать фотографию',
+        'photo.replace':     'Заменить фотографию',
+        'photo.remove':      'Удалить фотографию',
+        'photo.hint':        'JPG, PNG или WEBP. Максимальный размер — 2 МБ.',
+        'photo.error.type':  'Поддерживаются только изображения JPG, PNG и WEBP.',
+        'photo.error.size':  'Размер изображения не должен превышать 2 МБ.',
+        'photo.error.read':  'Не удалось прочитать выбранное изображение.',
+        'photo.alt.generic': 'Фото питомца',
+        'error.storage':     'Не удалось сохранить изображение: хранилище браузера заполнено. Выберите изображение меньшего размера или удалите существующую фотографию.',
+        'error.save':        'Не удалось сохранить. Пожалуйста, попробуйте ещё раз.',
     },
 
     he: {
@@ -386,14 +463,50 @@ const TRANSLATIONS = {
         'empty.adopt':   'עדיין אין בקשות אימוץ. היו הראשונים!',
         'empty.stories': 'עדיין אין סיפורים. שתפו את הראשון!',
 
-        'search.found':   'חיפוש לפי שם, עיר, תיאור…',
-        'search.lost':    'חיפוש לפי שם, עיר, תיאור…',
-        'search.forHome': 'חיפוש לפי שם, עיר, תיאור…',
-        'search.adopt':   'חיפוש לפי עיר, תיאור…',
+        'search.found':   'חיפוש לפי שם, עיר או תיאור…',
+        'search.lost':    'חיפוש לפי שם, עיר או תיאור…',
+        'search.forHome': 'חיפוש לפי שם, עיר או תיאור…',
+        'search.adopt':   'חיפוש לפי עיר או תיאור…',
         'search.stories': 'חיפוש בסיפורים…',
 
         'contact.success.title': 'ההודעה נשלחה!',
         'contact.success.text':  'תודה שפנית אלינו. נחזור אליך תוך 2 ימי עסקים.',
+
+        'card.petName':     'שם חיית המחמד',
+        'card.petType':     'סוג חיית המחמד',
+        'card.breed':       'גזע',
+        'card.city':        'עיר',
+        'card.dateFound':   'תאריך מציאה',
+        'card.dateLost':    'תאריך אובדן',
+        'card.datePosted':  'תאריך פרסום',
+        'card.description': 'תיאור',
+        'card.contactEmail':'אימייל ליצירת קשר',
+        'card.contactPhone':'טלפון ליצירת קשר',
+        'card.status':      'סטטוס',
+
+        'form.label.petName':      'שם חיית המחמד',
+        'form.label.petNameTitle': 'שם חיית המחמד / כותרת',
+        'form.label.listingTitle': 'כותרת המודעה',
+        'form.label.aboutHome':    'עלייך ועל הבית שלך',
+        'btn.update.listing':      'עדכן מודעה',
+
+        'form.label.contentLang': 'שפת המודעה',
+        'contentLang.en':         'אנגלית',
+        'contentLang.ru':         'רוסית',
+        'contentLang.he':         'עברית',
+        'card.contentLang':       'שפת המודעה',
+
+        'photo.label':       'תמונה',
+        'photo.choose':      'בחירת תמונה',
+        'photo.replace':     'החלפת תמונה',
+        'photo.remove':      'הסרת תמונה',
+        'photo.hint':        'JPG, PNG או WEBP. גודל מרבי: 2MB.',
+        'photo.error.type':  'נתמכים רק קובצי JPG, PNG ו-WEBP.',
+        'photo.error.size':  'גודל התמונה לא יכול לעלות על 2MB.',
+        'photo.error.read':  'לא ניתן לקרוא את התמונה שנבחרה.',
+        'photo.alt.generic': 'תמונת חיית מחמד',
+        'error.storage':     'לא ניתן לשמור את התמונה כי אחסון הדפדפן מלא. נסו תמונה קטנה יותר או הסירו תמונה קיימת.',
+        'error.save':        'לא ניתן לשמור. אנא נסו שוב.',
     },
 };
 
@@ -407,6 +520,229 @@ function t(key) {
 function tType(type)     { return type   ? t('type.'   + type)   : ''; }
 function tStatus(status) { return status ? t('status.' + status) : ''; }
 function tCat(cat)       { return cat    ? t('cat.'    + cat)    : ''; }
+
+function getLocalizedField(item, fieldName) {
+    const lang    = document.documentElement.lang || DEFAULT_LANG;
+    const i18nKey = fieldName + 'I18n';
+    if (item[i18nKey]) {
+        return item[i18nKey][lang] || item[i18nKey][DEFAULT_LANG] || item[fieldName] || '';
+    }
+    return item[fieldName] || '';
+}
+
+// ===== PHOTO HELPERS =====
+
+const PHOTO_PLACEHOLDER = 'assets/images/pet-placeholder.svg';
+const PHOTO_MAX_BYTES   = 2 * 1024 * 1024;
+const PHOTO_MAX_DIM     = 1200;
+const PHOTO_TYPES       = ['image/jpeg', 'image/png', 'image/webp'];
+
+// Pending photo changes per section:
+//   undefined → no change (keep existing on edit, no photo on add)
+//   null      → user explicitly removed photo
+//   {source:'local',...} → new photo selected
+const pendingPhotoChange = {};
+
+function normalizePhoto(photo) {
+    if (!photo) return null;
+    if (photo.source === 'local') {
+        return (typeof photo.dataUrl === 'string' && photo.dataUrl.startsWith('data:image/'))
+            ? photo : null;
+    }
+    if (photo.source === 'asset' && typeof photo.url === 'string') return photo;
+    return null;
+}
+
+function getPhotoSource(listing) {
+    const p = normalizePhoto(listing?.photo);
+    if (!p) return PHOTO_PLACEHOLDER;
+    if (p.source === 'local') return p.dataUrl;
+    if (p.source === 'asset') return p.url;
+    return PHOTO_PLACEHOLDER;
+}
+
+function validateImageFile(file) {
+    if (!PHOTO_TYPES.includes(file.type)) return 'photo.error.type';
+    if (file.size > PHOTO_MAX_BYTES)      return 'photo.error.size';
+    return null;
+}
+
+function readImageFile(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload  = e => resolve(e.target.result);
+        reader.onerror = () => reject(new Error('read'));
+        reader.readAsDataURL(file);
+    });
+}
+
+function resizeImage(dataUrl) {
+    return new Promise(resolve => {
+        const img = new Image();
+        img.onerror = () => resolve(dataUrl);
+        img.onload  = () => {
+            const { width, height } = img;
+            const ratio  = Math.min(1, PHOTO_MAX_DIM / Math.max(width, height));
+            const canvas = document.createElement('canvas');
+            canvas.width  = Math.round(width  * ratio);
+            canvas.height = Math.round(height * ratio);
+            canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+            const webp = canvas.toDataURL('image/webp', 0.85);
+            resolve(webp.startsWith('data:image/webp') ? webp : canvas.toDataURL('image/jpeg', 0.85));
+        };
+        img.src = dataUrl;
+    });
+}
+
+function updatePhotoPreview(section, photoSrc) {
+    const preview     = document.getElementById('photo-preview-'     + section);
+    const placeholder = document.getElementById('photo-placeholder-' + section);
+    const btnChoose   = document.getElementById('photoBtnChoose-'    + section);
+    const btnReplace  = document.getElementById('photoBtnReplace-'   + section);
+    const btnRemove   = document.getElementById('photoBtnRemove-'    + section);
+    if (!preview) return;
+
+    const hasPhoto = photoSrc && photoSrc !== PHOTO_PLACEHOLDER;
+    preview.src = hasPhoto ? photoSrc : '';
+    preview.classList.toggle('hidden', !hasPhoto);
+    if (placeholder) placeholder.classList.toggle('hidden', hasPhoto);
+    if (btnChoose)   btnChoose.classList.toggle('hidden',   hasPhoto);
+    if (btnReplace)  btnReplace.classList.toggle('hidden',  !hasPhoto);
+    if (btnRemove)   btnRemove.classList.toggle('hidden',   !hasPhoto);
+}
+
+function resetPendingPhoto(section) {
+    pendingPhotoChange[section] = undefined;
+    updatePhotoPreview(section, null);
+    const input  = document.getElementById('photoInput-' + section);
+    const errEl  = document.getElementById('photo-error-' + section);
+    if (input)  input.value = '';
+    if (errEl)  { errEl.textContent = ''; errEl.classList.remove('visible'); }
+}
+
+const SECTION_STATUSES = {
+    found:   ['Open', 'Resolved'],
+    lost:    ['Open', 'Resolved'],
+    forHome: ['Available', 'Adopted'],
+    adopt:   ['Open', 'Matched'],
+};
+
+function rebuildFilterSelects() {
+    const types = ['Cat', 'Dog', 'Bird', 'Other'];
+
+    ['found', 'lost', 'forHome', 'adopt'].forEach(section => {
+        const typeSel = document.getElementById('filter-type-' + section);
+        if (typeSel) {
+            const cur = typeSel.value;
+            typeSel.innerHTML = `<option value="">${esc(t('filter.allTypes'))}</option>` +
+                types.map(v => `<option value="${v}"${v === cur ? ' selected' : ''}>${esc(tType(v))}</option>`).join('');
+        }
+
+        const statSel = document.getElementById('filter-status-' + section);
+        if (statSel) {
+            const cur = statSel.value;
+            statSel.innerHTML = `<option value="">${esc(t('filter.allStatuses'))}</option>` +
+                (SECTION_STATUSES[section] || []).map(v =>
+                    `<option value="${v}"${v === cur ? ' selected' : ''}>${esc(tStatus(v))}</option>`
+                ).join('');
+        }
+    });
+
+    const catSel = document.getElementById('filter-cat-stories');
+    if (catSel) {
+        const cur = catSel.value;
+        catSel.innerHTML = `<option value="">${esc(t('filter.allCategories'))}</option>` +
+            ['Funny', 'Touching', 'Useful'].map(v =>
+                `<option value="${v}"${v === cur ? ' selected' : ''}>${esc(tCat(v))}</option>`
+            ).join('');
+    }
+}
+
+// ===== LISTING FORM I18N =====
+
+const SECTION_FORM_CONFIG = {
+    found:   { titleKey: 'form.label.petNameTitle', dateKey: 'card.dateFound',  descKey: 'card.description',    statuses: ['Open', 'Resolved']    },
+    lost:    { titleKey: 'form.label.petName',      dateKey: 'card.dateLost',   descKey: 'card.description',    statuses: ['Open', 'Resolved']    },
+    forHome: { titleKey: 'form.label.petName',      dateKey: 'card.datePosted', descKey: 'card.description',    statuses: ['Available', 'Adopted'] },
+    adopt:   { titleKey: 'form.label.listingTitle', dateKey: 'card.datePosted', descKey: 'form.label.aboutHome', statuses: ['Open', 'Matched']     },
+};
+
+function setLabelText(labelEl, text) {
+    const req = labelEl.querySelector('.req');
+    labelEl.textContent = text;
+    if (req) labelEl.append(' ', req);
+}
+
+function updateListingFormTranslations(section, mode) {
+    const cfg  = SECTION_FORM_CONFIG[section];
+    if (!cfg) return;
+    const form = document.getElementById('listingForm-' + section);
+    if (!form) return;
+
+    // Form title
+    const titleEl = document.getElementById('form-title-' + section);
+    if (titleEl) titleEl.textContent = mode === 'edit' ? t('form.edit.listing') : t('form.add.' + section);
+
+    // Labels (look up by for="" inside the form)
+    const lbl = id => form.querySelector(`label[for="${section}-${id}"]`);
+    if (lbl('type'))   setLabelText(lbl('type'),   t('card.petType'));
+    if (lbl('title'))  setLabelText(lbl('title'),  t(cfg.titleKey));
+    if (lbl('city'))   setLabelText(lbl('city'),   t('card.city'));
+    if (lbl('date'))   setLabelText(lbl('date'),   t(cfg.dateKey));
+    if (lbl('desc'))   setLabelText(lbl('desc'),   t(cfg.descKey));
+    if (lbl('email'))  lbl('email').textContent  = t('card.contactEmail');
+    if (lbl('phone'))  lbl('phone').textContent  = t('card.contactPhone');
+    if (lbl('status')) lbl('status').textContent = t('card.status');
+
+    // Type select — preserve selected value
+    const typeSel = document.getElementById(section + '-type');
+    if (typeSel) {
+        const cur = typeSel.value;
+        typeSel.innerHTML = `<option value="">${esc(t('form.selectType'))}</option>` +
+            ['Cat', 'Dog', 'Bird', 'Other'].map(v =>
+                `<option value="${v}"${v === cur ? ' selected' : ''}>${esc(tType(v))}</option>`
+            ).join('');
+    }
+
+    // Status select — preserve selected value
+    const statSel = document.getElementById(section + '-status');
+    if (statSel) {
+        const cur = statSel.value;
+        statSel.innerHTML = cfg.statuses.map(v =>
+            `<option value="${v}"${v === cur ? ' selected' : ''}>${esc(tStatus(v))}</option>`
+        ).join('');
+    }
+
+    // contentLanguage label + select — re-render options, preserve current value
+    const contentLangLbl = form.querySelector(`label[for="${section}-contentLanguage"]`);
+    if (contentLangLbl) contentLangLbl.textContent = t('form.label.contentLang');
+    const contentLangSel = document.getElementById(section + '-contentLanguage');
+    if (contentLangSel) {
+        const validLangs = ['en', 'ru', 'he'];
+        const cur = validLangs.includes(contentLangSel.value) ? contentLangSel.value : 'en';
+        contentLangSel.innerHTML = validLangs.map(v =>
+            `<option value="${v}"${v === cur ? ' selected' : ''}>${esc(t('contentLang.' + v))}</option>`
+        ).join('');
+    }
+
+    // Submit and Cancel buttons
+    const submitBtn = form.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.textContent = mode === 'edit' ? t('btn.update.listing') : t('btn.save.listing');
+    const cancelBtnEl = document.getElementById('cancelForm-' + section);
+    if (cancelBtnEl) cancelBtnEl.textContent = t('btn.cancel');
+
+    // Photo uploader labels
+    const photoLabel   = document.getElementById('photo-label-'       + section);
+    const photoHintEl  = form.querySelector('.photo-hint');
+    const photoBtnC    = document.getElementById('photoBtnChoose-'    + section);
+    const photoBtnR    = document.getElementById('photoBtnReplace-'   + section);
+    const photoBtnRm   = document.getElementById('photoBtnRemove-'    + section);
+    if (photoLabel)  photoLabel.textContent  = t('photo.label');
+    if (photoHintEl) photoHintEl.textContent = t('photo.hint');
+    if (photoBtnC)   photoBtnC.textContent   = t('photo.choose');
+    if (photoBtnR)   photoBtnR.textContent   = t('photo.replace');
+    if (photoBtnRm)  photoBtnRm.textContent  = t('photo.remove');
+}
 
 function applyTranslations(lang) {
     const tbl = TRANSLATIONS[lang];
@@ -439,7 +775,16 @@ function applyTranslations(lang) {
 
     // Re-render dynamic cards so type/status/button labels update immediately
     if (document.getElementById('listings-found')) {
-        ['found', 'lost', 'forHome', 'adopt'].forEach(renderListings);
+        rebuildFilterSelects();
+        ['found', 'lost', 'forHome', 'adopt'].forEach(section => {
+            renderListings(section);
+            // If form is open, re-translate it without losing entered values
+            const fw = document.getElementById('form-' + section);
+            if (fw && !fw.classList.contains('hidden')) {
+                const editId = document.getElementById('editId-' + section)?.value;
+                updateListingFormTranslations(section, editId ? 'edit' : 'add');
+            }
+        });
         renderStories();
     }
 }
@@ -505,7 +850,7 @@ function refreshCityFilter(section, data) {
 
 // ===== STANDARD LISTING SECTIONS =====
 
-const LISTING_FIELDS = ['type', 'title', 'city', 'date', 'description', 'email', 'phone', 'status'];
+const LISTING_FIELDS = ['type', 'title', 'city', 'date', 'description', 'email', 'phone', 'status', 'contentLanguage'];
 
 function renderListings(section) {
     const data    = load(section);
@@ -533,42 +878,71 @@ function renderListings(section) {
     }
     empty.classList.add('hidden');
 
-    grid.innerHTML = filtered.map(item => `
+    const dateKey = section === 'found' ? 'card.dateFound'
+                  : section === 'lost'  ? 'card.dateLost'
+                  : 'card.datePosted';
+
+    grid.innerHTML = filtered.map(item => {
+        const localTitle     = getLocalizedField(item, 'title');
+        const localDesc      = getLocalizedField(item, 'description');
+        const photoSrc       = getPhotoSource(item);
+        const photoAlt       = esc(localTitle || t('photo.alt.generic'));
+        const contentLang    = item.contentLanguage ?? 'en';
+        const contentDirClass = contentLang === 'he' ? 'user-content-rtl' : 'user-content-ltr';
+        const rows = [];
+        if (item.city)  rows.push(`<div class="card-field"><dt>${esc(t('card.city'))}</dt><dd><span class="${contentDirClass}">${esc(item.city)}</span></dd></div>`);
+        if (item.date)  rows.push(`<div class="card-field"><dt>${esc(t(dateKey))}</dt><dd>${fmtDate(item.date)}</dd></div>`);
+        if (localDesc)  rows.push(`<div class="card-field card-field--desc"><dt>${esc(t('card.description'))}</dt><dd><span class="${contentDirClass}">${esc(localDesc)}</span></dd></div>`);
+        rows.push(`<div class="card-field"><dt>${esc(t('card.contentLang'))}</dt><dd><span class="badge badge-lang">${esc(t('contentLang.' + contentLang))}</span></dd></div>`);
+        if (item.email) rows.push(`<div class="card-field"><dt>${esc(t('card.contactEmail'))}</dt><dd><a class="ltr-value" href="mailto:${esc(item.email)}">${esc(item.email)}</a></dd></div>`);
+        if (item.phone) rows.push(`<div class="card-field"><dt>${esc(t('card.contactPhone'))}</dt><dd><span class="ltr-value"><a href="tel:${esc(item.phone)}">${esc(item.phone)}</a></span></dd></div>`);
+
+        return `
         <div class="listing-card ${section}">
+            <div class="card-photo">
+                <img src="${esc(photoSrc)}" alt="${photoAlt}" loading="lazy"
+                     onerror="if(!this.dataset.fb){this.dataset.fb='1';this.src='${PHOTO_PLACEHOLDER}'}">
+            </div>
             <div class="card-header">
-                <div class="card-title">${esc(item.title)}</div>
+                <div class="card-title"><span class="${contentDirClass}">${esc(localTitle)}</span></div>
                 <span class="badge badge-type">${esc(tType(item.type))}</span>
             </div>
-            <div class="card-meta">
-                <span>📍 ${esc(item.city)}</span>
-                <span>📅 ${fmtDate(item.date)}</span>
+            ${rows.length ? `<dl class="card-fields">${rows.join('')}</dl>` : ''}
+            <div class="card-status">
+                <span class="card-field-label">${esc(t('card.status'))}</span>
+                <span class="badge badge-status-${esc(item.status?.toLowerCase())}">${esc(tStatus(item.status))}</span>
             </div>
-            <p class="card-desc">${esc(item.description)}</p>
-            ${item.email || item.phone ? `
-            <div class="card-contact">
-                ${item.email ? `<div>✉️ <a href="mailto:${esc(item.email)}">${esc(item.email)}</a></div>` : ''}
-                ${item.phone ? `<div>📞 <a href="tel:${esc(item.phone)}">${esc(item.phone)}</a></div>` : ''}
-            </div>` : ''}
-            <span class="badge badge-status-${esc(item.status?.toLowerCase())}">${esc(tStatus(item.status))}</span>
             <div class="card-actions">
                 <button class="btn btn-edit"   data-action="edit"   data-id="${esc(item.id)}">${t('btn.edit')}</button>
                 <button class="btn btn-delete" data-action="delete" data-id="${esc(item.id)}">${t('btn.delete')}</button>
             </div>
         </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 function setupListingSection(section) {
-    const formWrap  = document.getElementById('form-' + section);
-    const form      = document.getElementById('listingForm-' + section);
-    const formTitle = document.getElementById('form-title-' + section);
-    const editIdEl  = document.getElementById('editId-' + section);
-    const showBtn   = document.getElementById('showFormBtn-' + section);
-    const cancelBtn = document.getElementById('cancelForm-' + section);
-    const grid      = document.getElementById('listings-' + section);
+    const formWrap   = document.getElementById('form-'         + section);
+    const form       = document.getElementById('listingForm-'  + section);
+    const editIdEl   = document.getElementById('editId-'       + section);
+    const showBtn    = document.getElementById('showFormBtn-'  + section);
+    const cancelBtn  = document.getElementById('cancelForm-'   + section);
+    const grid       = document.getElementById('listings-'     + section);
+    const photoInput = document.getElementById('photoInput-'   + section);
+    const btnChoose  = document.getElementById('photoBtnChoose-'  + section);
+    const btnReplace = document.getElementById('photoBtnReplace-' + section);
+    const btnRemove  = document.getElementById('photoBtnRemove-'  + section);
+    const photoError = document.getElementById('photo-error-'  + section);
+
+    function showPhotoError(key) {
+        if (photoError) { photoError.textContent = t(key); photoError.classList.add('visible'); }
+    }
+    function clearPhotoError() {
+        if (photoError) { photoError.textContent = ''; photoError.classList.remove('visible'); }
+    }
 
     function openForm(forAdd = true) {
-        formTitle.textContent = forAdd ? t('form.add.' + section) : t('form.edit.listing');
+        updateListingFormTranslations(section, forAdd ? 'add' : 'edit');
         formWrap.classList.remove('hidden');
         formWrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
@@ -577,15 +951,59 @@ function setupListingSection(section) {
         form.reset();
         editIdEl.value = '';
         clearErrors(form);
+        resetPendingPhoto(section);
         formWrap.classList.add('hidden');
     }
+
+    // Photo button handlers
+    btnChoose?.addEventListener('click',  () => photoInput?.click());
+    btnReplace?.addEventListener('click', () => photoInput?.click());
+    btnRemove?.addEventListener('click',  () => {
+        pendingPhotoChange[section] = null;
+        updatePhotoPreview(section, null);
+        clearPhotoError();
+        if (photoInput) photoInput.value = '';
+    });
+
+    photoInput?.addEventListener('change', async () => {
+        const file = photoInput.files[0];
+        if (!file) return;
+        clearPhotoError();
+        const err = validateImageFile(file);
+        if (err) { showPhotoError(err); photoInput.value = ''; return; }
+        try {
+            const dataUrl = await readImageFile(file);
+            await new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload  = () => resolve();
+                img.onerror = () => reject(new Error('unreadable'));
+                img.src = dataUrl;
+            });
+            const resized   = await resizeImage(dataUrl);
+            const mimeMatch = resized.match(/^data:([^;]+);/);
+            pendingPhotoChange[section] = {
+                source:   'local',
+                dataUrl:  resized,
+                fileName: file.name,
+                mimeType: mimeMatch ? mimeMatch[1] : file.type,
+            };
+            updatePhotoPreview(section, resized);
+        } catch {
+            showPhotoError('photo.error.read');
+            photoInput.value = '';
+        }
+    });
 
     showBtn?.addEventListener('click', () => {
         if (!formWrap.classList.contains('hidden')) { closeForm(); return; }
         editIdEl.value = '';
         form.reset();
         clearErrors(form);
+        pendingPhotoChange[section] = undefined;
+        updatePhotoPreview(section, null);
         openForm(true);
+        const clSel = document.getElementById(section + '-contentLanguage');
+        if (clSel) clSel.value = document.documentElement.lang || 'en';
     });
 
     cancelBtn?.addEventListener('click', closeForm);
@@ -598,25 +1016,46 @@ function setupListingSection(section) {
         const obj = {};
         fd.forEach((v, k) => { obj[k] = v.trim(); });
 
-        const editId = editIdEl.value;
-        const data   = load(section);
+        const editId  = editIdEl.value;
+        const data    = load(section);
+        const pending = pendingPhotoChange[section];
 
-        if (editId) {
-            const idx = data.findIndex(d => d.id === editId);
-            if (idx !== -1) {
-                data[idx] = { ...data[idx], ...obj };
-                save(section, data);
-                showToast(t('toast.listing.updated'));
+        if (pending && pending !== null) {
+            if (typeof pending.dataUrl !== 'string' || !pending.dataUrl.startsWith('data:image/')) {
+                showPhotoError('photo.error.read');
+                return;
             }
-        } else {
-            data.unshift({ ...obj, id: genId(), createdAt: Date.now() });
-            save(section, data);
-            showToast(t('toast.listing.saved'));
         }
 
-        closeForm();
-        renderListings(section);
-        updateStats();
+        try {
+            if (editId) {
+                const idx = data.findIndex(d => d.id === editId);
+                if (idx !== -1) {
+                    let finalPhoto;
+                    if (pending === null)           finalPhoto = null;
+                    else if (pending !== undefined) finalPhoto = { ...pending };
+                    else                            finalPhoto = data[idx].photo ?? null;
+                    data[idx] = { ...data[idx], ...obj, photo: finalPhoto };
+                    save(section, data);
+                    showToast(t('toast.listing.updated'));
+                }
+            } else {
+                const finalPhoto = (pending && pending !== null) ? { ...pending } : null;
+                const newItem = { ...obj, id: genId(), createdAt: Date.now(), photo: finalPhoto };
+                data.unshift(newItem);
+                save(section, data);
+                showToast(t('toast.listing.saved'));
+            }
+            closeForm();
+            renderListings(section);
+            updateStats();
+        } catch (err) {
+            if (err.name === 'QuotaExceededError' || err.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+                showPhotoError('error.storage');
+            } else {
+                showPhotoError('error.save');
+            }
+        }
     });
 
     grid?.addEventListener('click', e => {
@@ -644,6 +1083,9 @@ function setupListingSection(section) {
                 const el = form.elements[f];
                 if (el) el.value = item[f] ?? '';
             });
+            // Show existing photo in uploader (undefined = "keep as-is" on save)
+            pendingPhotoChange[section] = undefined;
+            updatePhotoPreview(section, item.photo ? getPhotoSource(item) : null);
             openForm(false);
         }
     });
@@ -855,7 +1297,7 @@ function markInvalid(el, msg) {
 
 function clearErrors(form) {
     form.querySelectorAll('.invalid').forEach(el => el.classList.remove('invalid'));
-    form.querySelectorAll('.field-error').forEach(el => el.remove());
+    form.querySelectorAll('.field-error:not([id])').forEach(el => el.remove());
 }
 
 // ===== STATS =====
@@ -972,10 +1414,172 @@ function seedSampleData() {
     localStorage.setItem(KEYS.seeded, '1');
 }
 
+// ===== I18N DATA UPGRADE =====
+
+const I18N_UPGRADE_KEY = 'pf_i18n_v1';
+
+function upgradeSeededData() {
+    if (localStorage.getItem(I18N_UPGRADE_KEY)) return;
+
+    const i18nPatch = {
+        'finder@example.com': {
+            titleI18n: { en: 'Orange tabby cat', ru: 'Рыжий полосатый кот', he: 'חתול ג\'ינג\'י מפוספס' },
+            descriptionI18n: {
+                en: 'Found near Central Park. Very friendly, has no collar. Eating well. Please contact if this is your cat!',
+                ru: 'Найден возле Центрального парка. Очень дружелюбный, без ошейника. Хорошо ест. Свяжитесь, если это ваш кот!',
+                he: 'נמצא ליד סנטרל פארק. ידידותי מאוד וללא קולר. אוכל היטב. צרו קשר אם זה החתול שלכם!',
+            },
+        },
+        'goodsam@example.com': {
+            titleI18n: { en: 'Small white terrier', ru: 'Маленький белый терьер', he: 'טרייר לבן קטן' },
+            descriptionI18n: {
+                en: 'Found wandering near Pine Street. Blue collar, no tags. Well-behaved and house-trained.',
+                ru: 'Найден бродящим возле Pine Street. Синий ошейник, без жетона. Хорошо воспитан и приучен к дому.',
+                he: 'נמצא משוטט ליד רחוב פיין. קולר כחול, ללא תג זיהוי. מחונך ומורגל לבית.',
+            },
+        },
+        'birdfinder@example.com': {
+            titleI18n: { en: 'Green parakeet', ru: 'Зелёный попугай', he: 'תוכון ירוק' },
+            descriptionI18n: {
+                en: 'Landed on my balcony this morning. Seems tame and trained. Responds to whistling.',
+                ru: 'Сегодня утром прилетел на балкон. Похоже, ручной и обученный. Реагирует на свист.',
+                he: 'נחת הבוקר במרפסת שלי. נראה מאולף ומורגל לבני אדם. מגיב לשריקות.',
+            },
+        },
+        'maxowner@example.com': {
+            titleI18n: { en: 'Max — Golden Retriever', ru: 'Макс — Золотистый ретривер', he: 'מקס — גולדן רטריבר' },
+            descriptionI18n: {
+                en: 'Max is 3 years old. Lost near Riverside Park. Red collar with ID tag. Very friendly. Reward offered!',
+                ru: 'Максу 3 года. Потерялся возле Riverside Park. Красный ошейник с адресником. Очень дружелюбный. Вознаграждение!',
+                he: 'מקס בן 3. אבד ליד פארק ריברסייד. קולר אדום עם תג זיהוי. ידידותי מאוד. תגמול יוענק!',
+            },
+        },
+        'lunafamily@example.com': {
+            titleI18n: { en: 'Luna — Black cat', ru: 'Луна — Чёрная кошка', he: 'לונה — חתולה שחורה' },
+            descriptionI18n: {
+                en: 'Luna is 2 years old, fully black with green eyes. She is microchipped. Last seen near Oak Street.',
+                ru: 'Луне 2 года, полностью чёрная с зелёными глазами. Вживлён чип. Последний раз видели возле Oak Street.',
+                he: 'לונה בת 2, שחורה לחלוטין עם עיניים ירוקות. מושתלת שבב. נראתה לאחרונה ליד רחוב אוק.',
+            },
+        },
+        'whiskers@example.com': {
+            titleI18n: { en: 'Whiskers — 4yr tabby', ru: 'Вискерс — полосатый кот, 4 года', he: 'ויסקרס — חתול מפוספס בן 4' },
+            descriptionI18n: {
+                en: 'Sweet 4-year-old tabby who loves cuddles. Owner is moving abroad. Neutered, vaccinated, very healthy.',
+                ru: 'Ласковый полосатый кот 4 лет. Хозяин переезжает за границу. Кастрирован, привит, здоров.',
+                he: 'חתול מפוספס חמוד בן 4 שאוהב חיבוקים. הבעלים עובר לחו"ל. מסורס, מחוסן, בריא מאוד.',
+            },
+        },
+        'buddyadopt@example.com': {
+            titleI18n: { en: 'Buddy — 2yr Beagle mix', ru: 'Бадди — бигль-метис, 2 года', he: 'באדי — מיקס ביגל בן 2' },
+            descriptionI18n: {
+                en: 'Energetic 2-year-old beagle mix. Great with kids! Needs a yard. Owner relocating for work.',
+                ru: 'Энергичный бигль-метис 2 лет. Отлично ладит с детьми! Нужен двор. Хозяин переезжает.',
+                he: 'מיקס ביגל אנרגטי בן 2. מעולה עם ילדים! צריך חצר. הבעלים עובר בגלל עבודה.',
+            },
+        },
+        'bunny@example.com': {
+            titleI18n: { en: 'Snowflake — Holland Lop rabbit', ru: 'Снежинка — карликовый вислоухий кролик', he: 'שלגית — ארנב הולנד לופ' },
+            descriptionI18n: {
+                en: 'Beautiful white Holland Lop rabbit. Very calm, litter trained. Comes with cage and all supplies.',
+                ru: 'Красивый белый вислоухий кролик. Очень спокойный, приучен к лотку. С клеткой и принадлежностями.',
+                he: 'ארנב הולנד לופ לבן ויפה. רגוע מאוד, מאולף לשטיח. מגיע עם כלוב וכל הציוד.',
+            },
+        },
+        'adopter1@example.com': {
+            titleI18n: { en: 'Looking for a calm senior cat', ru: 'Ищем спокойную пожилую кошку', he: 'מחפשים חתול מבוגר ורגוע' },
+            descriptionI18n: {
+                en: 'Retired couple with quiet home. Lots of time and love to give. Previous cat owners, experienced.',
+                ru: 'Пенсионная пара с тихим домом. Много времени и любви. Бывшие владельцы кошек, с опытом.',
+                he: 'זוג פנסיונרים עם בית שקט. הרבה זמן ואהבה לתת. בעלי חתולים לשעבר, עם ניסיון.',
+            },
+        },
+        'family@example.com': {
+            titleI18n: { en: 'Family wants a medium-size dog', ru: 'Семья ищет собаку среднего размера', he: 'משפחה מחפשת כלב בגודל בינוני' },
+            descriptionI18n: {
+                en: 'Family of 4 with backyard looking for a friendly, active dog. We hike, bike, and love the outdoors!',
+                ru: 'Семья из 4 человек с двором ищет активную собаку. Ходим в походы, ездим на велосипеде!',
+                he: 'משפחה של 4 עם חצר מחפשת כלב ידידותי ופעיל. אנחנו מטיילים, רוכבים על אופניים ואוהבים טבע!',
+            },
+        },
+    };
+
+    ['found', 'lost', 'forHome', 'adopt'].forEach(section => {
+        const data = load(section);
+        let changed = false;
+        data.forEach(item => {
+            const patch = item.email && i18nPatch[item.email];
+            if (patch && !item.titleI18n) {
+                Object.assign(item, patch);
+                changed = true;
+            }
+        });
+        if (changed) save(section, data);
+    });
+
+    localStorage.setItem(I18N_UPGRADE_KEY, '1');
+}
+
+// ===== SEED PHOTO UPGRADE =====
+
+const PHOTO_UPGRADE_KEY = 'pf_photo_v2';
+
+async function assetExists(url) {
+    if (location.protocol === 'file:') return false;
+    try {
+        const res = await fetch(url, { method: 'HEAD' });
+        return res.ok;
+    } catch {
+        return false;
+    }
+}
+
+async function upgradeSeedPhotos() {
+    if (localStorage.getItem(PHOTO_UPGRADE_KEY)) return;
+
+    const assetPhotos = {
+        'finder@example.com':  { section: 'found',   url: 'assets/images/found-sample.webp'    },
+        'maxowner@example.com':{ section: 'lost',    url: 'assets/images/lost-sample.webp'     },
+        'whiskers@example.com':{ section: 'forHome', url: 'assets/images/for-home-sample.webp' },
+        'adopter1@example.com':{ section: 'adopt',   url: 'assets/images/adopt-sample.webp'    },
+    };
+
+    const urls = [...new Set(Object.values(assetPhotos).map(p => p.url))];
+    const existsMap = {};
+    await Promise.all(urls.map(async url => {
+        existsMap[url] = await assetExists(url);
+    }));
+
+    ['found', 'lost', 'forHome', 'adopt'].forEach(sec => {
+        const data = load(sec);
+        let changed = false;
+        data.forEach(item => {
+            const patch = item.email && assetPhotos[item.email];
+            if (!patch || patch.section !== sec) return;
+
+            const isSeededAsset = item.photo?.source === 'asset' && item.photo?.url === patch.url;
+            if (!item.photo) {
+                item.photo = existsMap[patch.url] ? { source: 'asset', url: patch.url } : null;
+                changed = true;
+            } else if (isSeededAsset && !existsMap[patch.url]) {
+                item.photo = null;
+                changed = true;
+            }
+        });
+        if (changed) {
+            try { save(sec, data); } catch { /* quota – skip silently for seed */ }
+        }
+    });
+
+    localStorage.setItem(PHOTO_UPGRADE_KEY, '1');
+}
+
 // ===== INIT =====
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     seedSampleData();
+    upgradeSeededData();
+    await upgradeSeedPhotos();
 
     // Language switcher
     document.querySelectorAll('.lang-btn').forEach(btn => {
