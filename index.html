@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pet Friends</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <div class="header-inner">
+            <div class="logo">🐾 Pet Friends</div>
+            <button class="nav-toggle" id="navToggle" aria-label="Toggle menu">☰</button>
+            <nav id="mainNav">
+                <a href="#" class="nav-link active" data-section="home"    data-i18n="nav.home">Home</a>
+                <a href="#" class="nav-link" data-section="found"   data-i18n="nav.found">Found Pets</a>
+                <a href="#" class="nav-link" data-section="lost"    data-i18n="nav.lost">Lost Pets</a>
+                <a href="#" class="nav-link" data-section="forHome" data-i18n="nav.forHome">Pets for Home</a>
+                <a href="#" class="nav-link" data-section="adopt"   data-i18n="nav.adopt">I Want to Adopt</a>
+                <a href="#" class="nav-link" data-section="stories" data-i18n="nav.stories">Pet Stories</a>
+                <a href="#" class="nav-link" data-section="contact" data-i18n="nav.contact">Contact</a>
+            </nav>
+            <div class="lang-switcher">
+                <button class="lang-btn" data-lang="en">English</button>
+                <button class="lang-btn" data-lang="ru">Русский</button>
+                <button class="lang-btn" data-lang="he">עברית</button>
+            </div>
+        </div>
+    </header>
+
+    <main id="mainContent">
+
+        <!-- ===== HOME ===== -->
+        <section id="section-home" class="section active">
+            <div class="hero">
+                <h1 data-i18n="home.hero.title">Welcome to Pet Friends</h1>
+                <p data-i18n="home.hero.text">A community platform connecting animal lovers. Whether you found a stray, lost your pet, or want to give or find a loving home — you're in the right place.</p>
+            </div>
+            <div class="action-cards">
+                <div class="action-card found" data-section="found">
+                    <div class="action-icon">🔍</div>
+                    <h2 data-i18n="home.card.found.title">I Found a Pet</h2>
+                    <p data-i18n="home.card.found.text">Found a lost or stray animal? Post a listing so the owner can find their companion.</p>
+                    <button class="btn btn-found" data-i18n="home.card.found.btn">Go to Found Pets</button>
+                </div>
+                <div class="action-card lost" data-section="lost">
+                    <div class="action-icon">😢</div>
+                    <h2 data-i18n="home.card.lost.title">I Lost My Pet</h2>
+                    <p data-i18n="home.card.lost.text">Lost your furry friend? Post a listing with details to help bring them home.</p>
+                    <button class="btn btn-lost" data-i18n="home.card.lost.btn">Go to Lost Pets</button>
+                </div>
+                <div class="action-card forHome" data-section="forHome">
+                    <div class="action-icon">🏠</div>
+                    <h2 data-i18n="home.card.forHome.title">Pet Looking for Home</h2>
+                    <p data-i18n="home.card.forHome.text">Have a pet that needs a new loving home? Post their story and find the perfect family.</p>
+                    <button class="btn btn-forHome" data-i18n="home.card.forHome.btn">Pets for Adoption</button>
+                </div>
+                <div class="action-card adopt" data-section="adopt">
+                    <div class="action-icon">❤️</div>
+                    <h2 data-i18n="home.card.adopt.title">I Want to Adopt</h2>
+                    <p data-i18n="home.card.adopt.text">Ready to welcome a new family member? Browse pets or post your adoption request.</p>
+                    <button class="btn btn-adopt" data-i18n="home.card.adopt.btn">I Want to Adopt</button>
+                </div>
+            </div>
+            <div class="stats-bar">
+                <div class="stat"><span id="stat-found">0</span><span data-i18n="stat.found">Found Pets</span></div>
+                <div class="stat"><span id="stat-lost">0</span><span data-i18n="stat.lost">Lost Pets</span></div>
+                <div class="stat"><span id="stat-forHome">0</span><span data-i18n="stat.forHome">For Adoption</span></div>
+                <div class="stat"><span id="stat-adopt">0</span><span data-i18n="stat.adopt">Adopt Requests</span></div>
+                <div class="stat"><span id="stat-stories">0</span><span data-i18n="stat.stories">Pet Stories</span></div>
+            </div>
+        </section>
+
+        <!-- ===== FOUND PETS ===== -->
+        <section id="section-found" class="section">
+            <div class="section-header">
+                <h1 data-i18n="section.found.title">🔍 Found Pets</h1>
+                <p data-i18n="section.found.sub">Browse pets that have been found. Is one of them yours?</p>
+            </div>
+            <div class="controls-bar">
+                <div class="search-box">
+                    <input type="text" id="search-found" placeholder="Search by name, city, description…" class="search-input" data-i18n-placeholder="search.found">
+                </div>
+                <div class="filter-group">
+                    <select id="filter-type-found" class="filter-select">
+                        <option value="">All Types</option>
+                        <option value="Cat">Cat</option>
+                        <option value="Dog">Dog</option>
+                        <option value="Bird">Bird</option>
+                        <option value="Other">Other</option>
+                    </select>
+                    <select id="filter-city-found" class="filter-select">
+                        <option value="">All Cities</option>
+                    </select>
+                    <select id="filter-status-found" class="filter-select">
+                        <option value="">All Statuses</option>
+                        <option value="Open">Open</option>
+                        <option value="Resolved">Resolved</option>
+                    </select>
+                </div>
+                <button class="btn btn-found" id="showFormBtn-found" data-i18n="btn.post.found">+ Post Found Pet</button>
+            </div>
+            <div id="form-found" class="listing-form hidden">
+                <h2 id="form-title-found">Post a Found Pet</h2>
+                <form id="listingForm-found" novalidate>
+                    <input type="hidden" id="editId-found">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="found-type">Pet Type <span class="req">*</span></label>
+                            <select id="found-type" name="type" required>
+                                <option value="">Select type</option>
+                                <option value="Cat">Cat</option>
+                                <option value="Dog">Dog</option>
+                                <option value="Bird">Bird</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="found-title">Pet Name / Title <span class="req">*</span></label>
+                            <input type="text" id="found-title" name="title" placeholder="e.g. Orange tabby cat" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="found-city">City <span class="req">*</span></label>
+                            <input type="text" id="found-city" name="city" placeholder="e.g. New York" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="found-date">Date Found <span class="req">*</span></label>
+                            <input type="date" id="found-date" name="date" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="found-desc">Description <span class="req">*</span></label>
+                        <textarea id="found-desc" name="description" rows="3" placeholder="Describe the pet, where you found it, any markings…" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label id="photo-label-found">Photo</label>
+                        <div class="photo-upload-area">
+                            <img id="photo-preview-found" class="photo-preview hidden" alt="">
+                            <div id="photo-placeholder-found" class="photo-upload-placeholder">
+                                <span class="photo-placeholder-icon">📷</span>
+                            </div>
+                        </div>
+                        <div class="photo-upload-controls">
+                            <button type="button" class="btn btn-secondary btn-photo" id="photoBtnChoose-found">Choose Photo</button>
+                            <button type="button" class="btn btn-secondary btn-photo hidden" id="photoBtnReplace-found">Replace Photo</button>
+                            <button type="button" class="btn btn-secondary btn-photo hidden" id="photoBtnRemove-found">Remove Photo</button>
+                            <input type="file" id="photoInput-found" accept="image/jpeg,image/png,image/webp" class="photo-file-input">
+                        </div>
+                        <span class="photo-hint">JPG, PNG or WEBP. Maximum size: 2 MB.</span>
+                        <span class="field-error" id="photo-error-found"></span>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="found-email">Contact Email</label>
+                            <input type="email" id="found-email" name="email" placeholder="your@email.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="found-phone">Contact Phone</label>
+                            <input type="tel" id="found-phone" name="phone" placeholder="+1 234 567 8900">
+                        </div>
+                    </div>
+                    <div class="form-group half">
+                        <label for="found-status">Status</label>
+                        <select id="found-status" name="status">
+                            <option value="Open">Open</option>
+                            <option value="Resolved">Resolved</option>
+                        </select>
+                    </div>
+                    <div class="form-group half">
+                        <label for="found-contentLanguage">Listing Language</label>
+                        <select id="found-contentLanguage" name="contentLanguage">
+                            <option value="en">English</option>
+                            <option value="ru">Russian</option>
+                            <option value="he">Hebrew</option>
+                        </select>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-found">Save Listing</button>
+                        <button type="button" class="btn btn-secondary" id="cancelForm-found">Cancel</button>
+                    </div>
+                </form>
+            </div>
+            <div id="listings-found" class="listings-grid"></div>
+            <div id="empty-found" class="empty-state hidden">No found pet listings yet. Be the first to post!</div>
+        </section>
+
+        <!-- ===== LOST PETS ===== -->
+        <section id="section-lost" class="section">
+            <div class="section-header">
+                <h1 data-i18n="section.lost.title">😢 Lost Pets</h1>
+                <p data-i18n="section.lost.sub">Help reunite lost pets with their owners. Have you seen any of these animals?</p>
+            </div>
+            <div class="controls-bar">
+                <div class="search-box">
+                    <input type="text" id="search-lost" placeholder="Search by name, city, description…" class="search-input" data-i18n-placeholder="search.lost">
+                </div>
+                <div class="filter-group">
+                    <select id="filter-type-lost" class="filter-select">
+                        <option value="">All Types</option>
+                        <option value="Cat">Cat</option>
+                        <option value="Dog">Dog</option>
+                        <option value="Bird">Bird</option>
+                        <option value="Other">Other</option>
+                    </select>
+                    <select id="filter-city-lost" class="filter-select">
+                        <option value="">All Cities</option>
+                    </select>
+                    <select id="filter-status-lost" class="filter-select">
+                        <option value="">All Statuses</option>
+                        <option value="Open">Open</option>
+                        <option value="Resolved">Resolved</option>
+                    </select>
+                </div>
+                <button class="btn btn-lost" id="showFormBtn-lost" data-i18n="btn.post.lost">+ Report Lost Pet</button>
+            </div>
+            <div id="form-lost" class="listing-form hidden">
+                <h2 id="form-title-lost">Report a Lost Pet</h2>
+                <form id="listingForm-lost" novalidate>
+                    <input type="hidden" id="editId-lost">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="lost-type">Pet Type <span class="req">*</span></label>
+                            <select id="lost-type" name="type" required>
+                                <option value="">Select type</option>
+                                <option value="Cat">Cat</option>
+                                <option value="Dog">Dog</option>
+                                <option value="Bird">Bird</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="lost-title">Pet Name <span class="req">*</span></label>
+                            <input type="text" id="lost-title" name="title" placeholder="e.g. Max" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="lost-city">City <span class="req">*</span></label>
+                            <input type="text" id="lost-city" name="city" placeholder="e.g. Chicago" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="lost-date">Date Lost <span class="req">*</span></label>
+                            <input type="date" id="lost-date" name="date" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="lost-desc">Description <span class="req">*</span></label>
+                        <textarea id="lost-desc" name="description" rows="3" placeholder="Describe your pet, last seen location, any collar or markings…" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label id="photo-label-lost">Photo</label>
+                        <div class="photo-upload-area">
+                            <img id="photo-preview-lost" class="photo-preview hidden" alt="">
+                            <div id="photo-placeholder-lost" class="photo-upload-placeholder">
+                                <span class="photo-placeholder-icon">📷</span>
+                            </div>
+                        </div>
+                        <div class="photo-upload-controls">
+                            <button type="button" class="btn btn-secondary btn-photo" id="photoBtnChoose-lost">Choose Photo</button>
+                            <button type="button" class="btn btn-secondary btn-photo hidden" id="photoBtnReplace-lost">Replace Photo</button>
+                            <button type="button" class="btn btn-secondary btn-photo hidden" id="photoBtnRemove-lost">Remove Photo</button>
+                            <input type="file" id="photoInput-lost" accept="image/jpeg,image/png,image/webp" class="photo-file-input">
+                        </div>
+                        <span class="photo-hint">JPG, PNG or WEBP. Maximum size: 2 MB.</span>
+                        <span class="field-error" id="photo-error-lost"></span>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="lost-email">Contact Email</label>
+                            <input type="email" id="lost-email" name="email" placeholder="your@email.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="lost-phone">Contact Phone</label>
+                            <input type="tel" id="lost-phone" name="phone" placeholder="+1 234 567 8900">
+                        </div>
+                    </div>
+                    <div class="form-group half">
+                        <label for="lost-status">Status</label>
+                        <select id="lost-status" name="status">
+                            <option value="Open">Open</option>
+                            <option value="Resolved">Resolved</option>
+                        </select>
+                    </div>
+                    <div class="form-group half">
+                        <label for="lost-contentLanguage">Listing Language</label>
+                        <select id="lost-contentLanguage" name="contentLanguage">
+                            <option value="en">English</option>
+                            <option value="ru">Russian</option>
+                            <option value="he">Hebrew</option>
+                        </select>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-lost">Save Listing</button>
+                        <button type="button" class="btn btn-secondary" id="cancelForm-lost">Cancel</button>
+                    </div>
+                </form>
+            </div>
+            <div id="listings-lost" class="listings-grid"></div>
+            <div id="empty-lost" class="empty-state hidden">No lost pet listings at this time.</div>
+        </section>
+
+        <!-- ===== PETS FOR HOME ===== -->
+        <section id="section-forHome" class="section">
+            <div class="section-header">
+                <h1 data-i18n="section.forHome.title">🏠 Pets Looking for a Home</h1>
+                <p data-i18n="section.forHome.sub">These wonderful animals are looking for their forever homes. Could you be the one?</p>
+            </div>
+            <div class="controls-bar">
+                <div class="search-box">
+                    <input type="text" id="search-forHome" placeholder="Search by name, city, description…" class="search-input" data-i18n-placeholder="search.forHome">
+                </div>
+                <div class="filter-group">
+                    <select id="filter-type-forHome" class="filter-select">
+                        <option value="">All Types</option>
+                        <option value="Cat">Cat</option>
+                        <option value="Dog">Dog</option>
+                        <option value="Bird">Bird</option>
+                        <option value="Other">Other</option>
+                    </select>
+                    <select id="filter-city-forHome" class="filter-select">
+                        <option value="">All Cities</option>
+                    </select>
+                    <select id="filter-status-forHome" class="filter-select">
+                        <option value="">All Statuses</option>
+                        <option value="Available">Available</option>
+                        <option value="Adopted">Adopted</option>
+                    </select>
+                </div>
+                <button class="btn btn-forHome" id="showFormBtn-forHome" data-i18n="btn.post.forHome">+ Add Pet for Adoption</button>
+            </div>
+            <div id="form-forHome" class="listing-form hidden">
+                <h2 id="form-title-forHome">Post a Pet for Adoption</h2>
+                <form id="listingForm-forHome" novalidate>
+                    <input type="hidden" id="editId-forHome">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="forHome-type">Pet Type <span class="req">*</span></label>
+                            <select id="forHome-type" name="type" required>
+                                <option value="">Select type</option>
+                                <option value="Cat">Cat</option>
+                                <option value="Dog">Dog</option>
+                                <option value="Bird">Bird</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="forHome-title">Pet Name <span class="req">*</span></label>
+                            <input type="text" id="forHome-title" name="title" placeholder="e.g. Bella" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="forHome-city">City <span class="req">*</span></label>
+                            <input type="text" id="forHome-city" name="city" placeholder="e.g. Los Angeles" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="forHome-date">Date Posted <span class="req">*</span></label>
+                            <input type="date" id="forHome-date" name="date" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="forHome-desc">Description <span class="req">*</span></label>
+                        <textarea id="forHome-desc" name="description" rows="3" placeholder="Tell us about the pet, their personality, special needs…" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label id="photo-label-forHome">Photo</label>
+                        <div class="photo-upload-area">
+                            <img id="photo-preview-forHome" class="photo-preview hidden" alt="">
+                            <div id="photo-placeholder-forHome" class="photo-upload-placeholder">
+                                <span class="photo-placeholder-icon">📷</span>
+                            </div>
+                        </div>
+                        <div class="photo-upload-controls">
+                            <button type="button" class="btn btn-secondary btn-photo" id="photoBtnChoose-forHome">Choose Photo</button>
+                            <button type="button" class="btn btn-secondary btn-photo hidden" id="photoBtnReplace-forHome">Replace Photo</button>
+                            <button type="button" class="btn btn-secondary btn-photo hidden" id="photoBtnRemove-forHome">Remove Photo</button>
+                            <input type="file" id="photoInput-forHome" accept="image/jpeg,image/png,image/webp" class="photo-file-input">
+                        </div>
+                        <span class="photo-hint">JPG, PNG or WEBP. Maximum size: 2 MB.</span>
+                        <span class="field-error" id="photo-error-forHome"></span>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="forHome-email">Contact Email</label>
+                            <input type="email" id="forHome-email" name="email" placeholder="your@email.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="forHome-phone">Contact Phone</label>
+                            <input type="tel" id="forHome-phone" name="phone" placeholder="+1 234 567 8900">
+                        </div>
+                    </div>
+                    <div class="form-group half">
+                        <label for="forHome-status">Status</label>
+                        <select id="forHome-status" name="status">
+                            <option value="Available">Available</option>
+                            <option value="Adopted">Adopted</option>
+                        </select>
+                    </div>
+                    <div class="form-group half">
+                        <label for="forHome-contentLanguage">Listing Language</label>
+                        <select id="forHome-contentLanguage" name="contentLanguage">
+                            <option value="en">English</option>
+                            <option value="ru">Russian</option>
+                            <option value="he">Hebrew</option>
+                        </select>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-forHome">Save Listing</button>
+                        <button type="button" class="btn btn-secondary" id="cancelForm-forHome">Cancel</button>
+                    </div>
+                </form>
+            </div>
+            <div id="listings-forHome" class="listings-grid"></div>
+            <div id="empty-forHome" class="empty-state hidden">No pets listed for adoption yet.</div>
+        </section>
+
+        <!-- ===== I WANT TO ADOPT ===== -->
+        <section id="section-adopt" class="section">
+            <div class="section-header">
+                <h1 data-i18n="section.adopt.title">❤️ I Want to Adopt</h1>
+                <p data-i18n="section.adopt.sub">Post your adoption request and let pets find you. Or browse open adoption requests.</p>
+            </div>
+            <div class="controls-bar">
+                <div class="search-box">
+                    <input type="text" id="search-adopt" placeholder="Search by city, description…" class="search-input" data-i18n-placeholder="search.adopt">
+                </div>
+                <div class="filter-group">
+                    <select id="filter-type-adopt" class="filter-select">
+                        <option value="">All Types</option>
+                        <option value="Cat">Cat</option>
+                        <option value="Dog">Dog</option>
+                        <option value="Bird">Bird</option>
+                        <option value="Other">Other</option>
+                    </select>
+                    <select id="filter-city-adopt" class="filter-select">
+                        <option value="">All Cities</option>
+                    </select>
+                    <select id="filter-status-adopt" class="filter-select">
+                        <option value="">All Statuses</option>
+                        <option value="Open">Open</option>
+                        <option value="Matched">Matched</option>
+                    </select>
+                </div>
+                <button class="btn btn-adopt" id="showFormBtn-adopt" data-i18n="btn.post.adopt">+ Post Adoption Request</button>
+            </div>
+            <div id="form-adopt" class="listing-form hidden">
+                <h2 id="form-title-adopt">Post an Adoption Request</h2>
+                <form id="listingForm-adopt" novalidate>
+                    <input type="hidden" id="editId-adopt">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="adopt-type">Preferred Pet Type <span class="req">*</span></label>
+                            <select id="adopt-type" name="type" required>
+                                <option value="">Select type</option>
+                                <option value="Cat">Cat</option>
+                                <option value="Dog">Dog</option>
+                                <option value="Bird">Bird</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="adopt-title">Request Title <span class="req">*</span></label>
+                            <input type="text" id="adopt-title" name="title" placeholder="e.g. Looking for a calm senior cat" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="adopt-city">City <span class="req">*</span></label>
+                            <input type="text" id="adopt-city" name="city" placeholder="e.g. Seattle" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="adopt-date">Date <span class="req">*</span></label>
+                            <input type="date" id="adopt-date" name="date" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="adopt-desc">About You &amp; Your Home <span class="req">*</span></label>
+                        <textarea id="adopt-desc" name="description" rows="3" placeholder="Tell us about yourself, your home, experience with pets…" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label id="photo-label-adopt">Photo</label>
+                        <div class="photo-upload-area">
+                            <img id="photo-preview-adopt" class="photo-preview hidden" alt="">
+                            <div id="photo-placeholder-adopt" class="photo-upload-placeholder">
+                                <span class="photo-placeholder-icon">📷</span>
+                            </div>
+                        </div>
+                        <div class="photo-upload-controls">
+                            <button type="button" class="btn btn-secondary btn-photo" id="photoBtnChoose-adopt">Choose Photo</button>
+                            <button type="button" class="btn btn-secondary btn-photo hidden" id="photoBtnReplace-adopt">Replace Photo</button>
+                            <button type="button" class="btn btn-secondary btn-photo hidden" id="photoBtnRemove-adopt">Remove Photo</button>
+                            <input type="file" id="photoInput-adopt" accept="image/jpeg,image/png,image/webp" class="photo-file-input">
+                        </div>
+                        <span class="photo-hint">JPG, PNG or WEBP. Maximum size: 2 MB.</span>
+                        <span class="field-error" id="photo-error-adopt"></span>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="adopt-email">Contact Email</label>
+                            <input type="email" id="adopt-email" name="email" placeholder="your@email.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="adopt-phone">Contact Phone</label>
+                            <input type="tel" id="adopt-phone" name="phone" placeholder="+1 234 567 8900">
+                        </div>
+                    </div>
+                    <div class="form-group half">
+                        <label for="adopt-status">Status</label>
+                        <select id="adopt-status" name="status">
+                            <option value="Open">Open</option>
+                            <option value="Matched">Matched</option>
+                        </select>
+                    </div>
+                    <div class="form-group half">
+                        <label for="adopt-contentLanguage">Listing Language</label>
+                        <select id="adopt-contentLanguage" name="contentLanguage">
+                            <option value="en">English</option>
+                            <option value="ru">Russian</option>
+                            <option value="he">Hebrew</option>
+                        </select>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-adopt">Save Request</button>
+                        <button type="button" class="btn btn-secondary" id="cancelForm-adopt">Cancel</button>
+                    </div>
+                </form>
+            </div>
+            <div id="listings-adopt" class="listings-grid"></div>
+            <div id="empty-adopt" class="empty-state hidden">No adoption requests yet. Be the first to post!</div>
+        </section>
+
+        <!-- ===== PET STORIES ===== -->
+        <section id="section-stories" class="section">
+            <div class="section-header">
+                <h1 data-i18n="section.stories.title">📖 Pet Stories</h1>
+                <p data-i18n="section.stories.sub">Share your funny, touching, or useful pet stories!</p>
+            </div>
+            <div class="controls-bar">
+                <div class="search-box">
+                    <input type="text" id="search-stories" placeholder="Search stories…" class="search-input" data-i18n-placeholder="search.stories">
+                </div>
+                <div class="filter-group">
+                    <select id="filter-cat-stories" class="filter-select">
+                        <option value="">All Categories</option>
+                        <option value="Funny">Funny</option>
+                        <option value="Touching">Touching</option>
+                        <option value="Useful">Useful</option>
+                    </select>
+                </div>
+                <button class="btn btn-stories" id="showFormBtn-stories" data-i18n="btn.post.stories">+ Share a Story</button>
+            </div>
+            <div id="form-stories" class="listing-form hidden">
+                <h2 id="form-title-stories">Share a Pet Story</h2>
+                <form id="listingForm-stories" novalidate>
+                    <input type="hidden" id="editId-stories">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="stories-title">Story Title <span class="req">*</span></label>
+                            <input type="text" id="stories-title" name="title" placeholder="e.g. The Day My Cat Saved the Day" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="stories-category">Category <span class="req">*</span></label>
+                            <select id="stories-category" name="category" required>
+                                <option value="">Select category</option>
+                                <option value="Funny">Funny</option>
+                                <option value="Touching">Touching</option>
+                                <option value="Useful">Useful</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="stories-text">Your Story <span class="req">*</span></label>
+                        <textarea id="stories-text" name="text" rows="4" placeholder="Tell your story…" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="stories-media">Media URL (photo or video)</label>
+                        <input type="url" id="stories-media" name="mediaUrl" placeholder="https://example.com/photo.jpg">
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-stories">Share Story</button>
+                        <button type="button" class="btn btn-secondary" id="cancelForm-stories">Cancel</button>
+                    </div>
+                </form>
+            </div>
+            <div id="listings-stories" class="listings-grid"></div>
+            <div id="empty-stories" class="empty-state hidden">No stories yet. Share the first one!</div>
+        </section>
+
+        <!-- ===== CONTACT ===== -->
+        <section id="section-contact" class="section">
+            <div class="section-header">
+                <h1 data-i18n="section.contact.title">📬 Contact Us</h1>
+                <p data-i18n="section.contact.sub">Have a question or suggestion? We'd love to hear from you!</p>
+            </div>
+            <div class="contact-container">
+                <div id="contactFormWrap">
+                    <form id="contactForm" class="contact-form" novalidate>
+                        <div class="form-group">
+                            <label for="contact-name">Your Name <span class="req">*</span></label>
+                            <input type="text" id="contact-name" name="name" placeholder="Jane Smith" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="contact-email">Email <span class="req">*</span></label>
+                            <input type="email" id="contact-email" name="email" placeholder="jane@example.com" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="contact-subject">Subject <span class="req">*</span></label>
+                            <input type="text" id="contact-subject" name="subject" placeholder="How can we help?" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="contact-message">Message <span class="req">*</span></label>
+                            <textarea id="contact-message" name="message" rows="5" placeholder="Your message…" required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Send Message</button>
+                    </form>
+                </div>
+                <div id="contactSuccess" class="contact-success hidden">
+                    <div class="success-icon">✅</div>
+                    <h2>Message Sent!</h2>
+                    <p>Thank you for reaching out. We'll get back to you within 2 business days.</p>
+                    <button class="btn btn-primary" id="contactReset">Send Another Message</button>
+                </div>
+                <div class="contact-info">
+                    <h3>About Pet Friends</h3>
+                    <p>Pet Friends is a community platform for animal lovers. We connect people who have found pets, lost pets, or want to give or find a loving home for an animal.</p>
+                    <p>This website is built as a realistic practice project for QA students — all data is stored locally in your browser.</p>
+                    <hr>
+                    <h3>Quick Links</h3>
+                    <ul>
+                        <li><a href="#" class="nav-link-inline" data-section="found">Post a found pet</a></li>
+                        <li><a href="#" class="nav-link-inline" data-section="lost">Report a lost pet</a></li>
+                        <li><a href="#" class="nav-link-inline" data-section="forHome">List a pet for adoption</a></li>
+                        <li><a href="#" class="nav-link-inline" data-section="adopt">Post an adoption request</a></li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer>
+        <p data-i18n="footer">🐾 Pet Friends — A community for animal lovers &nbsp;|&nbsp; Practice website for QA students</p>
+    </footer>
+
+    <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>

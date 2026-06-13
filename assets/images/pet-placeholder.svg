@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260" fill="none">
+  <rect width="400" height="260" fill="#f8f9fa"/>
+  <!-- Camera body -->
+  <rect x="148" y="100" width="104" height="76" rx="10" fill="none" stroke="#dadce0" stroke-width="3"/>
+  <!-- Lens -->
+  <circle cx="200" cy="138" r="22" fill="none" stroke="#dadce0" stroke-width="3"/>
+  <circle cx="200" cy="138" r="10" fill="#dadce0"/>
+  <!-- Viewfinder bump -->
+  <rect x="170" y="90" width="24" height="10" rx="4" fill="#dadce0"/>
+  <!-- Flash dot -->
+  <circle cx="238" cy="112" r="4" fill="#dadce0"/>
+  <!-- Paw prints (decorative) -->
+  <ellipse cx="130" cy="175" rx="8" ry="6" fill="#ececec"/>
+  <ellipse cx="122" cy="164" rx="4" ry="3" fill="#ececec"/>
+  <ellipse cx="130" cy="161" rx="4" ry="3" fill="#ececec"/>
+  <ellipse cx="138" cy="164" rx="4" ry="3" fill="#ececec"/>
+  <ellipse cx="270" cy="175" rx="8" ry="6" fill="#ececec"/>
+  <ellipse cx="262" cy="164" rx="4" ry="3" fill="#ececec"/>
+  <ellipse cx="270" cy="161" rx="4" ry="3" fill="#ececec"/>
+  <ellipse cx="278" cy="164" rx="4" ry="3" fill="#ececec"/>
+</svg>
