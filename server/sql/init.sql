@@ -1,0 +1,27 @@
+-- Pet Friends — MySQL initialization script
+-- Run this manually in MySQL Workbench or any MySQL client before starting the server.
+-- Requires MySQL 8.0.16+ (CHECK constraints are enforced from 8.0.16).
+
+CREATE DATABASE IF NOT EXISTS pet_friends
+  CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_ci;
+
+USE pet_friends;
+
+CREATE TABLE IF NOT EXISTS listings (
+  id               INT AUTO_INCREMENT PRIMARY KEY,
+  scenario         ENUM('found', 'lost', 'for_home', 'adopt') NOT NULL,
+  pet_type         ENUM('cat', 'dog', 'bird', 'rabbit', 'other') NOT NULL,
+  pet_name_or_title VARCHAR(255) NOT NULL,
+  breed            VARCHAR(100) NULL,
+  city             VARCHAR(120) NOT NULL,
+  event_date       DATE NULL,
+  description      TEXT NOT NULL,
+  contact_email    VARCHAR(255) NULL,
+  contact_phone    VARCHAR(50) NULL,
+  status           VARCHAR(50) NOT NULL DEFAULT 'open',
+  content_language ENUM('en', 'ru', 'he') NOT NULL DEFAULT 'en',
+  photo_url        VARCHAR(500) NULL,
+  created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
