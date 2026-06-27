@@ -1,6 +1,7 @@
 node_modules/
 .env
 *.log
-.env
-node_modules/
-*.log
+
+# Uploaded user files — track folder structure, ignore content
+server/uploads/listings/*
+!server/uploads/listings/.gitkeep
