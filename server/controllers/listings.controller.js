@@ -5,6 +5,7 @@ const ALLOWED_PET_TYPES = ['cat', 'dog', 'bird', 'rabbit', 'other'];
 const ALLOWED_LANGUAGES = ['en', 'ru', 'he'];
 const DATE_ONLY_RE      = /^\d{4}-\d{2}-\d{2}$/;
 
+// deleted_at IS NULL is the base filter — soft-deleted rows are never returned.
 const BASE_SELECT = `
   SELECT
     id, scenario, pet_type, pet_name_or_title, breed, city,
@@ -12,6 +13,7 @@ const BASE_SELECT = `
     contact_email, contact_phone, status, content_language,
     photo_url, created_at, updated_at
   FROM listings
+  WHERE deleted_at IS NULL
 `;
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -91,9 +93,9 @@ function toApiShape(row) {
   };
 }
 
-// Internal: fetch one raw row by id, returns null if not found.
+// Internal: fetch one active row by id.  Returns null when not found or deleted.
 async function fetchById(id) {
-  const [rows] = await pool.query(BASE_SELECT + ' WHERE id = ?', [id]);
+  const [rows] = await pool.query(BASE_SELECT + ' AND id = ?', [id]);
   return rows[0] ?? null;
 }
 
@@ -111,7 +113,7 @@ async function getListings(req, res) {
     const params = [];
 
     if (scenario) {
-      sql += ' WHERE scenario = ?';
+      sql += ' AND scenario = ?';
       params.push(scenario);
     }
 
@@ -185,7 +187,7 @@ async function updateListing(req, res) {
          scenario = ?, pet_type = ?, pet_name_or_title = ?, breed = ?,
          city = ?, event_date = ?, description = ?, contact_email = ?,
          contact_phone = ?, status = ?, content_language = ?, photo_url = ?
-       WHERE id = ?`,
+       WHERE id = ? AND deleted_at IS NULL`,
       [
         values.scenario,
         values.petType,
@@ -196,7 +198,7 @@ async function updateListing(req, res) {
         values.description,
         values.contactEmail,
         values.contactPhone,
-        values.status ?? existing.status,  // keep existing status when omitted
+        values.status ?? existing.status,
         values.contentLanguage,
         values.photoUrl,
         id,
@@ -211,4 +213,24 @@ async function updateListing(req, res) {
   }
 }
 
-module.exports = { getListings, getListing, createListing, updateListing };
+async function deleteListing(req, res) {
+  const id = validateListingId(req.params.id);
+  if (!id) return res.status(400).json({ status: 'error', message: 'Invalid listing id' });
+
+  try {
+    const existing = await fetchById(id);
+    if (!existing) return res.status(404).json({ status: 'error', message: 'Listing not found' });
+
+    await pool.query(
+      'UPDATE listings SET deleted_at = CURRENT_TIMESTAMP WHERE id = ? AND deleted_at IS NULL',
+      [id]
+    );
+
+    res.json({ status: 'ok', message: 'Listing deleted', id });
+  } catch (err) {
+    console.error('deleteListing error:', err.message);
+    res.status(500).json({ status: 'error', message: 'Failed to delete listing' });
+  }
+}
+
+module.exports = { getListings, getListing, createListing, updateListing, deleteListing };
