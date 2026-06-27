@@ -12,17 +12,13 @@ const KEYS = {
 };
 
 function load(key) {
-    try {
-        const parsed = JSON.parse(localStorage.getItem(KEYS[key]) || '[]');
-        if (key === 'stories') return parsed;
-        return parsed.map(item => ({ ...item, photo: normalizePhoto(item.photo) }));
-    }
-    catch { return []; }
+    const raw = window.PetFriendsListingsDataSource.load(key);
+    if (key === 'stories') return raw;
+    return raw.map(item => ({ ...item, photo: normalizePhoto(item.photo) }));
 }
 
 function save(key, data) {
-    localStorage.setItem(KEYS[key], JSON.stringify(data));
-    return true;
+    return window.PetFriendsListingsDataSource.save(key, data);
 }
 
 function genId() {
