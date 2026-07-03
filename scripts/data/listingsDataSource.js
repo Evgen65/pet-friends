@@ -15,7 +15,7 @@ window.PetFriendsListingsDataSource = (function () {
     // ── Configuration ────────────────────────────────────────────────────────
 
     // Only sections listed here use the backend API.  All others use localStorage.
-    const API_ENABLED_SECTIONS = new Set(['found', 'lost', 'forHome']);
+    const API_ENABLED_SECTIONS = new Set(['found', 'lost', 'forHome', 'adopt']);
 
     const API_ORIGIN   = 'http://localhost:3000';
     const API_BASE_URL = API_ORIGIN + '/api/listings';
