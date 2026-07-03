@@ -11,7 +11,13 @@ const KEYS = {
     seeded:  'pf_seeded',
 };
 
+// Per-section in-memory cache for API-enabled sections — populated by refreshSectionFromApi().
+const apiListingsCache = {};
+
 function load(key) {
+    if (window.PetFriendsListingsDataSource.API_ENABLED_SECTIONS.has(key)) {
+        return apiListingsCache[key] ?? [];
+    }
     const raw = window.PetFriendsListingsDataSource.load(key);
     if (key === 'stories') return raw;
     return raw.map(item => ({ ...item, photo: normalizePhoto(item.photo) }));
@@ -19,6 +25,37 @@ function load(key) {
 
 function save(key, data) {
     return window.PetFriendsListingsDataSource.save(key, data);
+}
+
+// Fetch a section from the backend API, update the cache, and re-render.
+// Errors are logged but do not crash the app; other sections keep working.
+async function refreshSectionFromApi(section) {
+    try {
+        apiListingsCache[section] = await window.PetFriendsListingsDataSource.apiGetListings(section);
+    } catch (err) {
+        console.error(`[${section}] Failed to load from API:`, err.message);
+    }
+    renderListings(section);
+    updateStats();
+}
+
+// Build a backend-shaped payload from listing form data.
+// photoUrl is the relative URL returned by the upload endpoint, or null.
+function buildApiPayload(section, obj, photoUrl) {
+    return {
+        scenario:        window.PetFriendsListingsDataSource.mapSectionKeyToScenario(section),
+        petType:         (obj.type || '').toLowerCase(),
+        petNameOrTitle:  obj.title        || '',
+        breed:           obj.breed        || null,
+        city:            obj.city         || '',
+        eventDate:       obj.date         || null,
+        description:     obj.description  || '',
+        contactEmail:    obj.email        || null,
+        contactPhone:    obj.phone        || null,
+        status:          obj.status       || 'Open',
+        contentLanguage: obj.contentLanguage || 'en',
+        photoUrl:        photoUrl         || null,
+    };
 }
 
 function genId() {
@@ -1004,7 +1041,7 @@ function setupListingSection(section) {
 
     cancelBtn?.addEventListener('click', closeForm);
 
-    form?.addEventListener('submit', e => {
+    form?.addEventListener('submit', async e => {
         e.preventDefault();
         if (!validateForm(form)) return;
 
@@ -1013,7 +1050,6 @@ function setupListingSection(section) {
         fd.forEach((v, k) => { obj[k] = v.trim(); });
 
         const editId  = editIdEl.value;
-        const data    = load(section);
         const pending = pendingPhotoChange[section];
 
         if (pending && pending !== null) {
@@ -1023,6 +1059,43 @@ function setupListingSection(section) {
             }
         }
 
+        // ── API mode ──────────────────────────────────────────────────────────
+        if (window.PetFriendsListingsDataSource.API_ENABLED_SECTIONS.has(section)) {
+            try {
+                let photoUrl = null;
+                if (editId) {
+                    const existing = (apiListingsCache[section] ?? []).find(d => d.id === editId);
+                    if (pending === null) {
+                        photoUrl = null;
+                    } else if (pending !== undefined) {
+                        photoUrl = await window.PetFriendsListingsDataSource.apiUploadPhoto(
+                            pending.dataUrl, pending.fileName, pending.mimeType);
+                    } else {
+                        photoUrl = existing?.photoUrl ?? null;
+                    }
+                    await window.PetFriendsListingsDataSource.apiUpdateListing(
+                        section, editId, buildApiPayload(section, obj, photoUrl));
+                    showToast(t('toast.listing.updated'));
+                } else {
+                    if (pending && pending !== null) {
+                        photoUrl = await window.PetFriendsListingsDataSource.apiUploadPhoto(
+                            pending.dataUrl, pending.fileName, pending.mimeType);
+                    }
+                    await window.PetFriendsListingsDataSource.apiCreateListing(
+                        section, buildApiPayload(section, obj, photoUrl));
+                    showToast(t('toast.listing.saved'));
+                }
+                closeForm();
+                await refreshSectionFromApi(section);
+            } catch (err) {
+                console.error(`[${section}] Save failed:`, err.message);
+                showToast(t('error.save'));
+            }
+            return;
+        }
+
+        // ── localStorage mode (Lost / ForHome / Adopt) ────────────────────────
+        const data = load(section);
         try {
             if (editId) {
                 const idx = data.findIndex(d => d.id === editId);
@@ -1054,18 +1127,29 @@ function setupListingSection(section) {
         }
     });
 
-    grid?.addEventListener('click', e => {
+    grid?.addEventListener('click', async e => {
         const editBtn   = e.target.closest('[data-action="edit"]');
         const deleteBtn = e.target.closest('[data-action="delete"]');
 
         if (deleteBtn) {
             const id = deleteBtn.dataset.id;
             if (!confirm(t('confirm.delete.listing'))) return;
-            const updated = load(section).filter(d => d.id !== id);
-            save(section, updated);
-            renderListings(section);
-            updateStats();
-            showToast(t('toast.listing.deleted'));
+            if (window.PetFriendsListingsDataSource.API_ENABLED_SECTIONS.has(section)) {
+                try {
+                    await window.PetFriendsListingsDataSource.apiDeleteListing(section, id);
+                    await refreshSectionFromApi(section);
+                    showToast(t('toast.listing.deleted'));
+                } catch (err) {
+                    console.error(`[${section}] Delete failed:`, err.message);
+                    showToast(t('error.save'));
+                }
+            } else {
+                const updated = load(section).filter(d => d.id !== id);
+                save(section, updated);
+                renderListings(section);
+                updateStats();
+                showToast(t('toast.listing.deleted'));
+            }
         }
 
         if (editBtn) {
@@ -1079,7 +1163,6 @@ function setupListingSection(section) {
                 const el = form.elements[f];
                 if (el) el.value = item[f] ?? '';
             });
-            // Show existing photo in uploader (undefined = "keep as-is" on save)
             pendingPhotoChange[section] = undefined;
             updatePhotoPreview(section, item.photo ? getPhotoSource(item) : null);
             openForm(false);
@@ -1627,4 +1710,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initLanguage();
 
     showSection('home');
+
+    // Load API-enabled sections from backend — non-blocking, runs after first paint.
+    window.PetFriendsListingsDataSource.API_ENABLED_SECTIONS.forEach(s => refreshSectionFromApi(s));
 });

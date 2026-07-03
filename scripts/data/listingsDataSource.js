@@ -3,24 +3,22 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Pet Friends — Listings Data Layer
 //
-// ACTIVE_DATA_SOURCE controls where data is read/written:
-//   'localStorage' — current mode; all CRUD goes to the browser.
-//   'api'          — future mode; all CRUD goes to the backend REST API.
+// API_ENABLED_SECTIONS controls which sections route through the backend API.
+// All other sections continue to use localStorage.
 //
-// To switch to API mode, change ACTIVE_DATA_SOURCE to 'api' AND update the
-// public functions to call the api* helpers (requires app.js to become async).
-// That work is deferred to a future milestone.
+// To add a section to API mode, add its key here AND ensure app.js awaits
+// the async data-layer functions for that section.
 // ─────────────────────────────────────────────────────────────────────────────
 
 window.PetFriendsListingsDataSource = (function () {
 
     // ── Configuration ────────────────────────────────────────────────────────
 
-    // Keep as 'localStorage' until the API integration milestone.
-    const ACTIVE_DATA_SOURCE = 'localStorage';
+    // Only sections listed here use the backend API.  All others use localStorage.
+    const API_ENABLED_SECTIONS = new Set(['found', 'lost']);
 
-    // Backend base URL — used only by api* helpers (currently inactive).
-    const API_BASE_URL = 'http://localhost:3000/api/listings';
+    const API_ORIGIN   = 'http://localhost:3000';
+    const API_BASE_URL = API_ORIGIN + '/api/listings';
 
     // ── localStorage key map ─────────────────────────────────────────────────
     // Must stay in sync with KEYS in app.js (listing sections only).
@@ -38,7 +36,7 @@ window.PetFriendsListingsDataSource = (function () {
     }
 
     // ── Backend scenario map ─────────────────────────────────────────────────
-    // Maps frontend section keys to the 'scenario' values the backend expects.
+    // Maps frontend section keys → backend 'scenario' values.
     // stories is excluded — the backend listings API does not handle stories.
 
     function mapSectionKeyToScenario(sectionKey) {
@@ -51,87 +49,110 @@ window.PetFriendsListingsDataSource = (function () {
         }
     }
 
-    // ── Field-name conversion helpers ────────────────────────────────────────
-    // Frontend localStorage records use short camelCase field names.
-    // Backend API records use a different (fuller) camelCase shape.
-    // These helpers are NOT called while ACTIVE_DATA_SOURCE is 'localStorage'.
+    // ── Record conversion ────────────────────────────────────────────────────
 
-    // petType: frontend uses Title-case ('Cat'); backend uses lower-case ENUM ('cat').
-    function _toBackendPetType(frontendType) {
-        return frontendType ? frontendType.toLowerCase() : null;
+    // petType: frontend Title-case ('Cat') ↔ backend lower-case ENUM ('cat').
+    function _toBackendPetType(type) {
+        return type ? type.toLowerCase() : null;
     }
 
-    // petType: backend lower-case → frontend Title-case.
-    // 'rabbit' has no frontend equivalent yet; falls back to 'Other'.
     function _toFrontendPetType(backendType) {
-        if (!backendType) return '';
         const map = { cat: 'Cat', dog: 'Dog', bird: 'Bird', rabbit: 'Other', other: 'Other' };
-        return map[backendType.toLowerCase()] ?? 'Other';
+        return backendType ? (map[backendType.toLowerCase()] ?? 'Other') : '';
     }
 
-    // Photo: only 'asset' photos (already a URL) can be sent to the backend.
-    // Base64 / local uploads are kept in localStorage only — no upload endpoint yet.
+    // photo: only asset-URL photos can be sent; Base64 uploads are handled
+    // separately via apiUploadPhoto() before building the payload.
     function _toBackendPhotoUrl(photo) {
         if (photo && photo.source === 'asset' && typeof photo.url === 'string') {
-            return photo.url;
+            // Strip origin prefix so only the relative path is stored in MySQL.
+            return photo.url.startsWith(API_ORIGIN)
+                ? photo.url.slice(API_ORIGIN.length)
+                : photo.url;
         }
         return null;
     }
 
     // Convert a frontend localStorage record → backend POST/PUT payload.
+    // Caller is responsible for building photoUrl from any pending upload.
     function toApiPayload(sectionKey, record) {
         return {
-            scenario:       mapSectionKeyToScenario(sectionKey),
-            petType:        _toBackendPetType(record.type),
-            petNameOrTitle: record.title   ?? '',
-            breed:          record.breed   ?? null,
-            city:           record.city    ?? '',
-            eventDate:      record.date    ?? null,
-            description:    record.description ?? '',
-            contactEmail:   record.email   ?? null,
-            contactPhone:   record.phone   ?? null,
-            status:         record.status  ?? 'Open',
+            scenario:        mapSectionKeyToScenario(sectionKey),
+            petType:         _toBackendPetType(record.type),
+            petNameOrTitle:  record.title   ?? '',
+            breed:           record.breed   ?? null,
+            city:            record.city    ?? '',
+            eventDate:       record.date    ?? null,
+            description:     record.description ?? '',
+            contactEmail:    record.email   ?? null,
+            contactPhone:    record.phone   ?? null,
+            status:          record.status  ?? 'Open',
             contentLanguage: record.contentLanguage ?? 'en',
-            photoUrl:       _toBackendPhotoUrl(record.photo),
+            photoUrl:        _toBackendPhotoUrl(record.photo),
         };
     }
 
     // Convert a backend API response record → frontend record shape.
-    // Backend integer IDs are coerced to strings to match frontend id comparisons.
-    function fromApiRecord(apiRecord) {
+    // photo.url is stored as full absolute URL so <img src> works when the
+    // HTML is opened outside the backend's static server.
+    // photoUrl (relative) is kept for PUT payloads and for edit-without-change.
+    function fromApiRecord(rec) {
+        const relPhotoUrl = rec.photoUrl || null;
         return {
-            id:              String(apiRecord.id),
-            type:            _toFrontendPetType(apiRecord.petType),
-            title:           apiRecord.petNameOrTitle ?? '',
-            breed:           apiRecord.breed          ?? null,
-            city:            apiRecord.city           ?? '',
-            date:            apiRecord.eventDate      ?? null,
-            description:     apiRecord.description    ?? '',
-            email:           apiRecord.contactEmail   ?? null,
-            phone:           apiRecord.contactPhone   ?? null,
-            status:          apiRecord.status         ?? 'Open',
-            contentLanguage: apiRecord.contentLanguage ?? 'en',
-            photo:           apiRecord.photoUrl
-                                 ? { source: 'asset', url: apiRecord.photoUrl }
-                                 : null,
-            createdAt: apiRecord.createdAt
-                           ? new Date(apiRecord.createdAt).getTime()
+            id:              String(rec.id),
+            type:            _toFrontendPetType(rec.petType),
+            title:           rec.petNameOrTitle ?? '',
+            breed:           rec.breed          ?? null,
+            city:            rec.city           ?? '',
+            date:            rec.eventDate      ?? null,
+            description:     rec.description    ?? '',
+            email:           rec.contactEmail   ?? null,
+            phone:           rec.contactPhone   ?? null,
+            status:          rec.status         ?? 'Open',
+            contentLanguage: rec.contentLanguage ?? 'en',
+            photo:    relPhotoUrl
+                          ? { source: 'asset', url: API_ORIGIN + relPhotoUrl }
+                          : null,
+            photoUrl: relPhotoUrl,  // relative path for API payloads
+            createdAt: rec.createdAt
+                           ? new Date(rec.createdAt).getTime()
                            : Date.now(),
         };
     }
 
-    // ── API adapter helpers (prepared; inactive while ACTIVE_DATA_SOURCE is
-    //    'localStorage').  Marked async — app.js must be updated before these
-    //    can be wired into the public functions. ──────────────────────────────
+    // ── Photo upload helper ──────────────────────────────────────────────────
+
+    function _dataUrlToBlob(dataUrl, mimeType) {
+        const byteStr = atob(dataUrl.split(',')[1]);
+        const buf     = new Uint8Array(byteStr.length);
+        for (let i = 0; i < byteStr.length; i++) buf[i] = byteStr.charCodeAt(i);
+        return new Blob([buf], { type: mimeType });
+    }
+
+    // Upload a pending Base64 photo to the backend upload endpoint.
+    // Returns the relative photoUrl: '/uploads/listings/listing-xxx.jpg'
+    async function apiUploadPhoto(dataUrl, fileName, mimeType) {
+        const blob = _dataUrlToBlob(dataUrl, mimeType);
+        const fd   = new FormData();
+        fd.append('photo', blob, fileName);
+        const res = await fetch(`${API_ORIGIN}/api/uploads/photos`, {
+            method: 'POST',
+            body:   fd,
+        });
+        if (!res.ok) throw new Error(`Photo upload failed (${res.status})`);
+        const json = await res.json();
+        return json.photoUrl;  // e.g. '/uploads/listings/listing-xxx.jpg'
+    }
+
+    // ── API adapter helpers ──────────────────────────────────────────────────
+    // These are active for sections listed in API_ENABLED_SECTIONS.
 
     async function apiGetListings(sectionKey) {
         const scenario = mapSectionKeyToScenario(sectionKey);
         if (!scenario) return [];
-        const url = `${API_BASE_URL}?scenario=${encodeURIComponent(scenario)}`;
-        const res = await fetch(url);
+        const res = await fetch(`${API_BASE_URL}?scenario=${encodeURIComponent(scenario)}`);
         if (!res.ok) throw new Error(`GET listings failed (${res.status})`);
-        const records = await res.json();
-        return records.map(fromApiRecord);
+        return (await res.json()).map(fromApiRecord);
     }
 
     async function apiGetListingById(sectionKey, id) {
@@ -141,27 +162,35 @@ window.PetFriendsListingsDataSource = (function () {
         return fromApiRecord(await res.json());
     }
 
-    async function apiCreateListing(sectionKey, listing) {
+    // apiPayload is a pre-built backend-shaped object (built by app.js using
+    // buildFoundApiPayload).  It is sent as-is — no toApiPayload conversion here.
+    async function apiCreateListing(_sectionKey, apiPayload) {
         const res = await fetch(API_BASE_URL, {
             method:  'POST',
             headers: { 'Content-Type': 'application/json' },
-            body:    JSON.stringify(toApiPayload(sectionKey, listing)),
+            body:    JSON.stringify(apiPayload),
         });
-        if (!res.ok) throw new Error(`POST listing failed (${res.status})`);
+        if (!res.ok) {
+            const body = await res.json().catch(() => ({}));
+            throw new Error(body.message || `POST listing failed (${res.status})`);
+        }
         return fromApiRecord(await res.json());
     }
 
-    async function apiUpdateListing(sectionKey, id, listing) {
+    async function apiUpdateListing(_sectionKey, id, apiPayload) {
         const res = await fetch(`${API_BASE_URL}/${encodeURIComponent(id)}`, {
             method:  'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body:    JSON.stringify(toApiPayload(sectionKey, listing)),
+            body:    JSON.stringify(apiPayload),
         });
-        if (!res.ok) throw new Error(`PUT listing failed (${res.status})`);
+        if (!res.ok) {
+            const body = await res.json().catch(() => ({}));
+            throw new Error(body.message || `PUT listing failed (${res.status})`);
+        }
         return fromApiRecord(await res.json());
     }
 
-    async function apiDeleteListing(sectionKey, id) {
+    async function apiDeleteListing(_sectionKey, id) {
         const res = await fetch(`${API_BASE_URL}/${encodeURIComponent(id)}`, {
             method: 'DELETE',
         });
@@ -189,21 +218,14 @@ window.PetFriendsListingsDataSource = (function () {
         return true;
     }
 
-    // ── Public functions — always route to localStorage for now ──────────────
-    // When ACTIVE_DATA_SOURCE becomes 'api', these functions will call the
-    // api* helpers above.  That requires app.js to be updated to handle async
-    // return values — deferred to a future milestone.
+    // ── Public functions — localStorage only (used by app.js load/save) ──────
+    // Sections in API_ENABLED_SECTIONS bypass these in app.js and call api*
+    // functions directly.
 
-    function load(sectionKey) {
-        return lsLoad(sectionKey);
-    }
-
-    function save(sectionKey, data) {
-        return lsSave(sectionKey, data);
-    }
-
-    function getListings(sectionKey)            { return lsLoad(sectionKey); }
-    function saveListings(sectionKey, listings) { return lsSave(sectionKey, listings); }
+    function load(sectionKey)            { return lsLoad(sectionKey); }
+    function save(sectionKey, data)      { return lsSave(sectionKey, data); }
+    function getListings(sectionKey)     { return lsLoad(sectionKey); }
+    function saveListings(sectionKey, d) { return lsSave(sectionKey, d); }
 
     function getListingById(sectionKey, id) {
         return lsLoad(sectionKey).find(item => item.id === id) ?? null;
@@ -236,19 +258,24 @@ window.PetFriendsListingsDataSource = (function () {
     // ── Public API ───────────────────────────────────────────────────────────
 
     return {
-        ACTIVE_DATA_SOURCE,
-        // Core (used by app.js load/save wrappers)
+        API_ENABLED_SECTIONS,
+        // localStorage public interface (used by app.js load/save wrappers)
         load,
         save,
-        // Named aliases
         getListings,
         saveListings,
-        // Higher-level CRUD
         getListingById,
         createListing,
         updateListing,
         deleteListing,
-        // Conversion helpers (exposed for testing and future milestone use)
+        // API adapter (called directly by app.js for API-enabled sections)
+        apiGetListings,
+        apiGetListingById,
+        apiCreateListing,
+        apiUpdateListing,
+        apiDeleteListing,
+        apiUploadPhoto,
+        // Conversion helpers (exposed for testing)
         mapSectionKeyToScenario,
         toApiPayload,
         fromApiRecord,
