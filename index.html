@@ -575,8 +575,21 @@
                         <textarea id="stories-text" name="text" rows="4" placeholder="Tell your story…" required></textarea>
                     </div>
                     <div class="form-group">
-                        <label for="stories-media">Media URL (photo or video)</label>
-                        <input type="url" id="stories-media" name="mediaUrl" placeholder="https://example.com/photo.jpg">
+                        <label id="photo-label-stories">Photo</label>
+                        <div class="photo-upload-area">
+                            <img id="photo-preview-stories" class="photo-preview hidden" alt="">
+                            <div id="photo-placeholder-stories" class="photo-upload-placeholder">
+                                <span class="photo-placeholder-icon">📷</span>
+                            </div>
+                        </div>
+                        <div class="photo-upload-controls">
+                            <button type="button" class="btn btn-secondary btn-photo" id="photoBtnChoose-stories">Choose Photo</button>
+                            <button type="button" class="btn btn-secondary btn-photo hidden" id="photoBtnReplace-stories">Replace Photo</button>
+                            <button type="button" class="btn btn-secondary btn-photo hidden" id="photoBtnRemove-stories">Remove Photo</button>
+                            <input type="file" id="photoInput-stories" accept="image/jpeg,image/png,image/webp" class="photo-file-input">
+                        </div>
+                        <span class="photo-hint">JPG, PNG or WEBP. Maximum size: 2 MB.</span>
+                        <span class="field-error" id="photo-error-stories"></span>
                     </div>
                     <div class="form-actions">
                         <button type="submit" class="btn btn-stories">Share Story</button>
@@ -647,6 +660,7 @@
     <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 
     <script src="scripts/data/listingsDataSource.js"></script>
+    <script src="scripts/data/storiesDataSource.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

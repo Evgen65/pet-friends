@@ -3,12 +3,13 @@
 // ===== STORAGE =====
 
 const KEYS = {
-    found:   'pf_found',
-    lost:    'pf_lost',
-    forHome: 'pf_forHome',
-    adopt:   'pf_adopt',
-    stories: 'pf_stories',
-    seeded:  'pf_seeded',
+    found:            'pf_found',
+    lost:             'pf_lost',
+    forHome:          'pf_forHome',
+    adopt:            'pf_adopt',
+    stories:          'pf_stories',
+    storyCategories:  'pf_storyCategories',
+    seeded:           'pf_seeded',
 };
 
 // Per-section in-memory cache for API-enabled sections — populated by refreshSectionFromApi().
@@ -37,6 +38,59 @@ async function refreshSectionFromApi(section) {
     }
     renderListings(section);
     updateStats();
+}
+
+// ===== PET STORIES — API cache & category side-map =====
+// Stories are always API-backed (no localStorage fallback for story content).
+// The backend pet_stories table has no "category" column, so category is kept
+// in a small localStorage-only side-map, keyed by story id.
+
+let storiesCache = [];
+
+async function refreshStoriesFromApi() {
+    try {
+        storiesCache = await window.PetFriendsStoriesDataSource.getStories();
+    } catch (err) {
+        console.error('[stories] Failed to load from API:', err.message);
+        storiesCache = [];
+    }
+    renderStories();
+    updateStats();
+}
+
+function loadStoryCategories() {
+    try {
+        return JSON.parse(localStorage.getItem(KEYS.storyCategories) || '{}');
+    } catch {
+        return {};
+    }
+}
+
+function getStoryCategory(id) {
+    return loadStoryCategories()[id] || '';
+}
+
+function setStoryCategory(id, category) {
+    const map = loadStoryCategories();
+    if (category) map[id] = category; else delete map[id];
+    localStorage.setItem(KEYS.storyCategories, JSON.stringify(map));
+}
+
+function deleteStoryCategory(id) {
+    setStoryCategory(id, null);
+}
+
+// Build a backend-shaped Pet Stories payload from story form data.
+// mediaUrl is the relative URL returned by the upload endpoint, or null.
+function buildStoryApiPayload(obj, mediaUrl) {
+    return {
+        title:           obj.title || '',
+        storyText:       obj.text  || '',
+        mediaType:       mediaUrl ? 'image' : 'none',
+        mediaUrl:        mediaUrl || null,
+        contentLanguage: document.documentElement.lang || 'en',
+        status:          'published',
+    };
 }
 
 // Build a backend-shaped payload from listing form data.
@@ -1180,7 +1234,7 @@ function setupListingSection(section) {
 // ===== STORIES =====
 
 function renderStories() {
-    const data   = load('stories');
+    const data   = storiesCache;
     const grid   = document.getElementById('listings-stories');
     const empty  = document.getElementById('empty-stories');
     const search = (document.getElementById('search-stories')?.value ?? '').toLowerCase();
@@ -1188,8 +1242,9 @@ function renderStories() {
 
     const filtered = data.filter(item => {
         const txt = (item.title + ' ' + item.text).toLowerCase();
+        const category = getStoryCategory(item.id);
         return (!search || txt.includes(search))
-            && (!catVal || item.category === catVal);
+            && (!catVal || category === catVal);
     });
 
     if (filtered.length === 0) {
@@ -1199,12 +1254,14 @@ function renderStories() {
     }
     empty.classList.add('hidden');
 
-    grid.innerHTML = filtered.map(item => `
+    grid.innerHTML = filtered.map(item => {
+        const category = getStoryCategory(item.id);
+        return `
         <div class="listing-card stories">
             ${item.mediaUrl ? `<img class="card-media" src="${esc(item.mediaUrl)}" alt="${esc(item.title)}" loading="lazy" onerror="this.remove()">` : ''}
             <div class="card-header">
                 <div class="card-title">${esc(item.title)}</div>
-                <span class="badge story-cat-${esc(item.category?.toLowerCase())}">${esc(tCat(item.category))}</span>
+                ${category ? `<span class="badge story-cat-${esc(category.toLowerCase())}">${esc(tCat(category))}</span>` : ''}
             </div>
             <div class="card-meta"><span>📅 ${fmtDate(item.date)}</span></div>
             <p class="card-desc">${esc(item.text)}</p>
@@ -1213,17 +1270,30 @@ function renderStories() {
                 <button class="btn btn-delete" data-action="delete" data-id="${esc(item.id)}">${t('btn.delete')}</button>
             </div>
         </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 function setupStoriesSection() {
-    const formWrap  = document.getElementById('form-stories');
-    const form      = document.getElementById('listingForm-stories');
-    const formTitle = document.getElementById('form-title-stories');
-    const editIdEl  = document.getElementById('editId-stories');
-    const showBtn   = document.getElementById('showFormBtn-stories');
-    const cancelBtn = document.getElementById('cancelForm-stories');
-    const grid      = document.getElementById('listings-stories');
+    const formWrap   = document.getElementById('form-stories');
+    const form       = document.getElementById('listingForm-stories');
+    const formTitle  = document.getElementById('form-title-stories');
+    const editIdEl   = document.getElementById('editId-stories');
+    const showBtn    = document.getElementById('showFormBtn-stories');
+    const cancelBtn  = document.getElementById('cancelForm-stories');
+    const grid       = document.getElementById('listings-stories');
+    const photoInput = document.getElementById('photoInput-stories');
+    const btnChoose  = document.getElementById('photoBtnChoose-stories');
+    const btnReplace = document.getElementById('photoBtnReplace-stories');
+    const btnRemove  = document.getElementById('photoBtnRemove-stories');
+    const photoError = document.getElementById('photo-error-stories');
+
+    function showPhotoError(key) {
+        if (photoError) { photoError.textContent = t(key); photoError.classList.add('visible'); }
+    }
+    function clearPhotoError() {
+        if (photoError) { photoError.textContent = ''; photoError.classList.remove('visible'); }
+    }
 
     function openForm(forAdd = true) {
         formTitle.textContent = forAdd ? t('form.add.stories') : t('form.edit.stories');
@@ -1235,74 +1305,143 @@ function setupStoriesSection() {
         form.reset();
         editIdEl.value = '';
         clearErrors(form);
+        resetPendingPhoto('stories');
         formWrap.classList.add('hidden');
     }
+
+    // Photo button handlers — reuses the same generic photo pipeline as listings.
+    btnChoose?.addEventListener('click',  () => photoInput?.click());
+    btnReplace?.addEventListener('click', () => photoInput?.click());
+    btnRemove?.addEventListener('click',  () => {
+        pendingPhotoChange['stories'] = null;
+        updatePhotoPreview('stories', null);
+        clearPhotoError();
+        if (photoInput) photoInput.value = '';
+    });
+
+    photoInput?.addEventListener('change', async () => {
+        const file = photoInput.files[0];
+        if (!file) return;
+        clearPhotoError();
+        const err = validateImageFile(file);
+        if (err) { showPhotoError(err); photoInput.value = ''; return; }
+        try {
+            const dataUrl = await readImageFile(file);
+            await new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload  = () => resolve();
+                img.onerror = () => reject(new Error('unreadable'));
+                img.src = dataUrl;
+            });
+            const resized   = await resizeImage(dataUrl);
+            const mimeMatch = resized.match(/^data:([^;]+);/);
+            pendingPhotoChange['stories'] = {
+                source:   'local',
+                dataUrl:  resized,
+                fileName: file.name,
+                mimeType: mimeMatch ? mimeMatch[1] : file.type,
+            };
+            updatePhotoPreview('stories', resized);
+        } catch {
+            showPhotoError('photo.error.read');
+            photoInput.value = '';
+        }
+    });
 
     showBtn?.addEventListener('click', () => {
         if (!formWrap.classList.contains('hidden')) { closeForm(); return; }
         editIdEl.value = '';
         form.reset();
         clearErrors(form);
+        pendingPhotoChange['stories'] = undefined;
+        updatePhotoPreview('stories', null);
         openForm(true);
     });
 
     cancelBtn?.addEventListener('click', closeForm);
 
-    form?.addEventListener('submit', e => {
+    form?.addEventListener('submit', async e => {
         e.preventDefault();
         if (!validateForm(form)) return;
 
         const fd  = new FormData(form);
         const obj = {};
         fd.forEach((v, k) => { obj[k] = v.trim(); });
-        obj.date = new Date().toISOString().split('T')[0];
 
-        const editId = editIdEl.value;
-        const data   = load('stories');
+        const editId  = editIdEl.value;
+        const pending = pendingPhotoChange['stories'];
 
-        if (editId) {
-            const idx = data.findIndex(d => d.id === editId);
-            if (idx !== -1) {
-                data[idx] = { ...data[idx], ...obj };
-                save('stories', data);
-                showToast(t('toast.story.updated'));
+        if (pending && pending !== null) {
+            if (typeof pending.dataUrl !== 'string' || !pending.dataUrl.startsWith('data:image/')) {
+                showPhotoError('photo.error.read');
+                return;
             }
-        } else {
-            data.unshift({ ...obj, id: genId(), createdAt: Date.now() });
-            save('stories', data);
-            showToast(t('toast.story.saved'));
         }
 
-        closeForm();
-        renderStories();
-        updateStats();
+        try {
+            let mediaUrl = null;
+            if (editId) {
+                const existing = storiesCache.find(d => d.id === editId);
+                if (pending === null) {
+                    mediaUrl = null;
+                } else if (pending !== undefined) {
+                    mediaUrl = await window.PetFriendsStoriesDataSource.uploadStoryPhoto(
+                        pending.dataUrl, pending.fileName, pending.mimeType);
+                } else {
+                    mediaUrl = existing?.mediaUrlRelative ?? null;
+                }
+                await window.PetFriendsStoriesDataSource.updateStory(
+                    editId, buildStoryApiPayload(obj, mediaUrl));
+                setStoryCategory(editId, obj.category || '');
+                showToast(t('toast.story.updated'));
+            } else {
+                if (pending && pending !== null) {
+                    mediaUrl = await window.PetFriendsStoriesDataSource.uploadStoryPhoto(
+                        pending.dataUrl, pending.fileName, pending.mimeType);
+                }
+                const created = await window.PetFriendsStoriesDataSource.createStory(
+                    buildStoryApiPayload(obj, mediaUrl));
+                setStoryCategory(created.id, obj.category || '');
+                showToast(t('toast.story.saved'));
+            }
+            closeForm();
+            await refreshStoriesFromApi();
+        } catch (err) {
+            console.error('[stories] Save failed:', err.message);
+            showToast(t('error.save'));
+        }
     });
 
-    grid?.addEventListener('click', e => {
+    grid?.addEventListener('click', async e => {
         const editBtn   = e.target.closest('[data-action="edit"]');
         const deleteBtn = e.target.closest('[data-action="delete"]');
 
         if (deleteBtn) {
             const id = deleteBtn.dataset.id;
             if (!confirm(t('confirm.delete.story'))) return;
-            const updated = load('stories').filter(d => d.id !== id);
-            save('stories', updated);
-            renderStories();
-            updateStats();
-            showToast(t('toast.story.deleted'));
+            try {
+                await window.PetFriendsStoriesDataSource.deleteStory(id);
+                deleteStoryCategory(id);
+                await refreshStoriesFromApi();
+                showToast(t('toast.story.deleted'));
+            } catch (err) {
+                console.error('[stories] Delete failed:', err.message);
+                showToast(t('error.save'));
+            }
         }
 
         if (editBtn) {
             const id   = editBtn.dataset.id;
-            const item = load('stories').find(d => d.id === id);
+            const item = storiesCache.find(d => d.id === id);
             if (!item) return;
             editIdEl.value = id;
             form.reset();
             clearErrors(form);
-            ['title', 'category', 'text', 'mediaUrl'].forEach(f => {
-                const el = form.elements[f];
-                if (el) el.value = item[f] ?? '';
-            });
+            if (form.elements['title']) form.elements['title'].value = item.title ?? '';
+            if (form.elements['text'])  form.elements['text'].value  = item.text  ?? '';
+            if (form.elements['category']) form.elements['category'].value = getStoryCategory(id);
+            pendingPhotoChange['stories'] = undefined;
+            updatePhotoPreview('stories', item.mediaUrl || null);
             openForm(false);
         }
     });
@@ -1382,10 +1521,12 @@ function clearErrors(form) {
 // ===== STATS =====
 
 function updateStats() {
-    ['found', 'lost', 'forHome', 'adopt', 'stories'].forEach(s => {
+    ['found', 'lost', 'forHome', 'adopt'].forEach(s => {
         const el = document.getElementById('stat-' + s);
         if (el) el.textContent = load(s).length;
     });
+    const storiesEl = document.getElementById('stat-stories');
+    if (storiesEl) storiesEl.textContent = storiesCache.length;
 }
 
 // ===== SAMPLE DATA =====
@@ -1713,4 +1854,5 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Load API-enabled sections from backend — non-blocking, runs after first paint.
     window.PetFriendsListingsDataSource.API_ENABLED_SECTIONS.forEach(s => refreshSectionFromApi(s));
+    refreshStoriesFromApi();
 });
