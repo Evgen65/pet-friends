@@ -28,15 +28,56 @@ function save(key, data) {
     return window.PetFriendsListingsDataSource.save(key, data);
 }
 
+// ===== SECTION MESSAGES (loading / error banners with optional retry) =====
+// One optional #message-<section> element per API-backed section. The
+// existing #empty-<section> element is left untouched for the true
+// "request succeeded, zero results" case.
+
+function setSectionLoading(section) {
+    const el = document.getElementById('message-' + section);
+    if (!el) return;
+    el.className   = 'section-message loading';
+    el.textContent = section === 'stories' ? t('loading.stories') : t('loading.listings');
+}
+
+function setSectionError(section) {
+    const el = document.getElementById('message-' + section);
+    if (!el) return;
+    el.className = 'section-message error';
+    const msg    = section === 'stories' ? t('error.stories') : t('error.listings');
+    el.innerHTML = `<span>${esc(msg)}</span> <button type="button" class="retry-button" data-retry-section="${esc(section)}">${esc(t('btn.retry'))}</button>`;
+}
+
+function clearSectionMessage(section) {
+    const el = document.getElementById('message-' + section);
+    if (!el) return;
+    el.className = 'section-message hidden';
+    el.innerHTML = '';
+}
+
+// Re-applies the currently-shown message's text in the active language
+// (called from applyTranslations) without re-triggering a fetch.
+function refreshSectionMessageLanguage(section) {
+    const el = document.getElementById('message-' + section);
+    if (!el) return;
+    if (el.classList.contains('loading'))     setSectionLoading(section);
+    else if (el.classList.contains('error'))  setSectionError(section);
+}
+
 // Fetch a section from the backend API, update the cache, and re-render.
 // Errors are logged but do not crash the app; other sections keep working.
 async function refreshSectionFromApi(section) {
+    setSectionLoading(section);
     try {
         apiListingsCache[section] = await window.PetFriendsListingsDataSource.apiGetListings(section);
+        clearSectionMessage(section);
+        renderListings(section);
     } catch (err) {
         console.error(`[${section}] Failed to load from API:`, err.message);
+        setSectionError(section);
+        document.getElementById('listings-' + section)?.replaceChildren();
+        document.getElementById('empty-' + section)?.classList.add('hidden');
     }
-    renderListings(section);
     updateStats();
 }
 
@@ -48,13 +89,18 @@ async function refreshSectionFromApi(section) {
 let storiesCache = [];
 
 async function refreshStoriesFromApi() {
+    setSectionLoading('stories');
     try {
         storiesCache = await window.PetFriendsStoriesDataSource.getStories();
+        clearSectionMessage('stories');
+        renderStories();
     } catch (err) {
         console.error('[stories] Failed to load from API:', err.message);
         storiesCache = [];
+        setSectionError('stories');
+        document.getElementById('listings-stories')?.replaceChildren();
+        document.getElementById('empty-stories')?.classList.add('hidden');
     }
-    renderStories();
     updateStats();
 }
 
@@ -234,6 +280,12 @@ const TRANSLATIONS = {
         'empty.adopt':   'No adoption requests yet. Be the first to post!',
         'empty.stories': 'No stories yet. Share the first one!',
 
+        'loading.listings': 'Loading listings…',
+        'loading.stories':  'Loading stories…',
+        'error.listings':   'Could not load listings. Please make sure the server is running.',
+        'error.stories':    'Could not load stories. Please try again later.',
+        'btn.retry':        'Retry',
+
         'search.found':   'Search by name, city, description…',
         'search.lost':    'Search by name, city, description…',
         'search.forHome': 'Search by name, city, description…',
@@ -392,6 +444,12 @@ const TRANSLATIONS = {
         'empty.adopt':   'Запросов на усыновление пока нет. Будьте первым!',
         'empty.stories': 'Историй пока нет. Поделитесь первой!',
 
+        'loading.listings': 'Загрузка объявлений…',
+        'loading.stories':  'Загрузка историй…',
+        'error.listings':   'Не удалось загрузить объявления. Убедитесь, что сервер запущен.',
+        'error.stories':    'Не удалось загрузить истории. Попробуйте позже.',
+        'btn.retry':        'Повторить',
+
         'search.found':   'Поиск по имени, городу или описанию…',
         'search.lost':    'Поиск по имени, городу или описанию…',
         'search.forHome': 'Поиск по имени, городу или описанию…',
@@ -549,6 +607,12 @@ const TRANSLATIONS = {
         'empty.forHome': 'עדיין אין חיות לאימוץ.',
         'empty.adopt':   'עדיין אין בקשות אימוץ. היו הראשונים!',
         'empty.stories': 'עדיין אין סיפורים. שתפו את הראשון!',
+
+        'loading.listings': 'טוען מודעות…',
+        'loading.stories':  'טוען סיפורים…',
+        'error.listings':   'לא ניתן לטעון את המודעות. ודאו שהשרת פועל.',
+        'error.stories':    'לא ניתן לטעון את הסיפורים. נסו שוב מאוחר יותר.',
+        'btn.retry':        'נסה שוב',
 
         'search.found':   'חיפוש לפי שם, עיר או תיאור…',
         'search.lost':    'חיפוש לפי שם, עיר או תיאור…',
@@ -865,6 +929,7 @@ function applyTranslations(lang) {
         rebuildFilterSelects();
         ['found', 'lost', 'forHome', 'adopt'].forEach(section => {
             renderListings(section);
+            refreshSectionMessageLanguage(section);
             // If form is open, re-translate it without losing entered values
             const fw = document.getElementById('form-' + section);
             if (fw && !fw.classList.contains('hidden')) {
@@ -873,6 +938,7 @@ function applyTranslations(lang) {
             }
         });
         renderStories();
+        refreshSectionMessageLanguage('stories');
     }
 }
 
@@ -1764,7 +1830,14 @@ async function upgradeSeedPhotos() {
         'adopter1@example.com':{ section: 'adopt',   url: 'assets/images/adopt-sample.webp'    },
     };
 
-    const urls = [...new Set(Object.values(assetPhotos).map(p => p.url))];
+    // Sections already served by the backend API (see API_ENABLED_SECTIONS)
+    // never render this localStorage-seeded data, so probing their sample
+    // image URLs would only produce console 404s for no benefit.
+    const urls = [...new Set(
+        Object.values(assetPhotos)
+            .filter(p => !window.PetFriendsListingsDataSource.API_ENABLED_SECTIONS.has(p.section))
+            .map(p => p.url)
+    )];
     const existsMap = {};
     await Promise.all(urls.map(async url => {
         existsMap[url] = await assetExists(url);
@@ -1839,6 +1912,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (nav.classList.contains('open') && !nav.contains(e.target) && e.target !== toggle) {
             nav.classList.remove('open');
         }
+    });
+
+    // Retry button inside a section's error message — reloads just that section
+    document.addEventListener('click', e => {
+        const btn = e.target.closest('.retry-button[data-retry-section]');
+        if (!btn) return;
+        const section = btn.dataset.retrySection;
+        if (section === 'stories') refreshStoriesFromApi();
+        else refreshSectionFromApi(section);
     });
 
     // Set up listing sections (event listeners; initial render happens inside initLanguage)
