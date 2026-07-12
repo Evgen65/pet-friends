@@ -87,16 +87,22 @@
                         <option value="Cat">Cat</option>
                         <option value="Dog">Dog</option>
                         <option value="Bird">Bird</option>
+                        <option value="Rabbit">Rabbit</option>
                         <option value="Other">Other</option>
                     </select>
-                    <select id="filter-city-found" class="filter-select">
-                        <option value="">All Cities</option>
-                    </select>
+                    <input type="text" id="filter-city-found" class="filter-select filter-control" placeholder="City…" data-i18n-placeholder="filter.cityPlaceholder">
                     <select id="filter-status-found" class="filter-select">
                         <option value="">All Statuses</option>
                         <option value="Open">Open</option>
                         <option value="Resolved">Resolved</option>
                     </select>
+                    <select id="filter-sort-found" class="filter-select">
+                        <option value="newest" data-i18n="filter.sort.newest">Newest first</option>
+                        <option value="oldest" data-i18n="filter.sort.oldest">Oldest first</option>
+                        <option value="city_asc" data-i18n="filter.sort.cityAsc">City A-Z</option>
+                        <option value="city_desc" data-i18n="filter.sort.cityDesc">City Z-A</option>
+                    </select>
+                    <button type="button" id="clearFilters-found" class="btn btn-secondary clear-filters-button" data-i18n="filter.clear">Clear filters</button>
                 </div>
                 <button class="btn btn-found" id="showFormBtn-found" data-i18n="btn.post.found">+ Post Found Pet</button>
             </div>
@@ -203,16 +209,22 @@
                         <option value="Cat">Cat</option>
                         <option value="Dog">Dog</option>
                         <option value="Bird">Bird</option>
+                        <option value="Rabbit">Rabbit</option>
                         <option value="Other">Other</option>
                     </select>
-                    <select id="filter-city-lost" class="filter-select">
-                        <option value="">All Cities</option>
-                    </select>
+                    <input type="text" id="filter-city-lost" class="filter-select filter-control" placeholder="City…" data-i18n-placeholder="filter.cityPlaceholder">
                     <select id="filter-status-lost" class="filter-select">
                         <option value="">All Statuses</option>
                         <option value="Open">Open</option>
                         <option value="Resolved">Resolved</option>
                     </select>
+                    <select id="filter-sort-lost" class="filter-select">
+                        <option value="newest" data-i18n="filter.sort.newest">Newest first</option>
+                        <option value="oldest" data-i18n="filter.sort.oldest">Oldest first</option>
+                        <option value="city_asc" data-i18n="filter.sort.cityAsc">City A-Z</option>
+                        <option value="city_desc" data-i18n="filter.sort.cityDesc">City Z-A</option>
+                    </select>
+                    <button type="button" id="clearFilters-lost" class="btn btn-secondary clear-filters-button" data-i18n="filter.clear">Clear filters</button>
                 </div>
                 <button class="btn btn-lost" id="showFormBtn-lost" data-i18n="btn.post.lost">+ Report Lost Pet</button>
             </div>
@@ -319,16 +331,22 @@
                         <option value="Cat">Cat</option>
                         <option value="Dog">Dog</option>
                         <option value="Bird">Bird</option>
+                        <option value="Rabbit">Rabbit</option>
                         <option value="Other">Other</option>
                     </select>
-                    <select id="filter-city-forHome" class="filter-select">
-                        <option value="">All Cities</option>
-                    </select>
+                    <input type="text" id="filter-city-forHome" class="filter-select filter-control" placeholder="City…" data-i18n-placeholder="filter.cityPlaceholder">
                     <select id="filter-status-forHome" class="filter-select">
                         <option value="">All Statuses</option>
                         <option value="Available">Available</option>
                         <option value="Adopted">Adopted</option>
                     </select>
+                    <select id="filter-sort-forHome" class="filter-select">
+                        <option value="newest" data-i18n="filter.sort.newest">Newest first</option>
+                        <option value="oldest" data-i18n="filter.sort.oldest">Oldest first</option>
+                        <option value="city_asc" data-i18n="filter.sort.cityAsc">City A-Z</option>
+                        <option value="city_desc" data-i18n="filter.sort.cityDesc">City Z-A</option>
+                    </select>
+                    <button type="button" id="clearFilters-forHome" class="btn btn-secondary clear-filters-button" data-i18n="filter.clear">Clear filters</button>
                 </div>
                 <button class="btn btn-forHome" id="showFormBtn-forHome" data-i18n="btn.post.forHome">+ Add Pet for Adoption</button>
             </div>
@@ -435,16 +453,22 @@
                         <option value="Cat">Cat</option>
                         <option value="Dog">Dog</option>
                         <option value="Bird">Bird</option>
+                        <option value="Rabbit">Rabbit</option>
                         <option value="Other">Other</option>
                     </select>
-                    <select id="filter-city-adopt" class="filter-select">
-                        <option value="">All Cities</option>
-                    </select>
+                    <input type="text" id="filter-city-adopt" class="filter-select filter-control" placeholder="City…" data-i18n-placeholder="filter.cityPlaceholder">
                     <select id="filter-status-adopt" class="filter-select">
                         <option value="">All Statuses</option>
                         <option value="Open">Open</option>
                         <option value="Matched">Matched</option>
                     </select>
+                    <select id="filter-sort-adopt" class="filter-select">
+                        <option value="newest" data-i18n="filter.sort.newest">Newest first</option>
+                        <option value="oldest" data-i18n="filter.sort.oldest">Oldest first</option>
+                        <option value="city_asc" data-i18n="filter.sort.cityAsc">City A-Z</option>
+                        <option value="city_desc" data-i18n="filter.sort.cityDesc">City Z-A</option>
+                    </select>
+                    <button type="button" id="clearFilters-adopt" class="btn btn-secondary clear-filters-button" data-i18n="filter.clear">Clear filters</button>
                 </div>
                 <button class="btn btn-adopt" id="showFormBtn-adopt" data-i18n="btn.post.adopt">+ Post Adoption Request</button>
             </div>

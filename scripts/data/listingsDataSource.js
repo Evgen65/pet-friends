@@ -147,10 +147,25 @@ window.PetFriendsListingsDataSource = (function () {
     // ── API adapter helpers ──────────────────────────────────────────────────
     // These are active for sections listed in API_ENABLED_SECTIONS.
 
-    async function apiGetListings(sectionKey) {
+    // filters: { q, petType, city, status, sort } — all optional. Empty/falsy
+    // values are omitted from the query string; petType is lower-cased to
+    // match the backend ENUM; sort is only sent when it differs from the
+    // backend's default ('newest').
+    async function apiGetListings(sectionKey, filters = {}) {
         const scenario = mapSectionKeyToScenario(sectionKey);
         if (!scenario) return [];
-        const res = await fetch(`${API_BASE_URL}?scenario=${encodeURIComponent(scenario)}`);
+
+        const params = new URLSearchParams();
+        params.set('scenario', scenario);
+
+        const { q, petType, city, status, sort } = filters;
+        if (q)                          params.set('q', q);
+        if (petType)                    params.set('petType', petType.toLowerCase());
+        if (city)                       params.set('city', city);
+        if (status)                     params.set('status', status);
+        if (sort && sort !== 'newest')  params.set('sort', sort);
+
+        const res = await fetch(`${API_BASE_URL}?${params.toString()}`);
         if (!res.ok) throw new Error(`GET listings failed (${res.status})`);
         return (await res.json()).map(fromApiRecord);
     }

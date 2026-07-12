@@ -208,6 +208,11 @@ main {
 }
 .filter-select:focus { border-color: var(--primary); background: var(--white); }
 
+/* filter-control: text inputs styled like .filter-select (e.g. the city filter) */
+.filter-control { width: 130px; cursor: text; }
+
+.clear-filters-button { white-space: nowrap; }
+
 /* ===== BUTTONS ===== */
 .btn {
     padding: 0.55rem 1.25rem;

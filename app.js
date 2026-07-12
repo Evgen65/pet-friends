@@ -15,6 +15,30 @@ const KEYS = {
 // Per-section in-memory cache for API-enabled sections — populated by refreshSectionFromApi().
 const apiListingsCache = {};
 
+// Per-section active filter/sort state, sent as API query params by refreshSectionFromApi().
+const sectionFilters = {};
+
+function getSectionFilters(section) {
+    return sectionFilters[section] ?? (sectionFilters[section] = {
+        q: '', petType: '', city: '', status: '', sort: 'newest',
+    });
+}
+
+function isSectionFilterActive(section) {
+    const f = getSectionFilters(section);
+    return !!(f.q || f.petType || f.city || f.status || (f.sort && f.sort !== 'newest'));
+}
+
+// Generic debounce — used for text inputs (search / city) so we don't
+// re-fetch on every keystroke.
+function debounce(fn, delay) {
+    let timer;
+    return (...args) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn(...args), delay);
+    };
+}
+
 function load(key) {
     if (window.PetFriendsListingsDataSource.API_ENABLED_SECTIONS.has(key)) {
         return apiListingsCache[key] ?? [];
@@ -69,7 +93,7 @@ function refreshSectionMessageLanguage(section) {
 async function refreshSectionFromApi(section) {
     setSectionLoading(section);
     try {
-        apiListingsCache[section] = await window.PetFriendsListingsDataSource.apiGetListings(section);
+        apiListingsCache[section] = await window.PetFriendsListingsDataSource.apiGetListings(section, getSectionFilters(section));
         clearSectionMessage(section);
         renderListings(section);
     } catch (err) {
@@ -224,11 +248,18 @@ const TRANSLATIONS = {
         'filter.allCities':     'All Cities',
         'filter.allStatuses':   'All Statuses',
         'filter.allCategories': 'All Categories',
+        'filter.cityPlaceholder': 'City…',
+        'filter.sort.newest':   'Newest first',
+        'filter.sort.oldest':   'Oldest first',
+        'filter.sort.cityAsc':  'City A-Z',
+        'filter.sort.cityDesc': 'City Z-A',
+        'filter.clear':         'Clear filters',
 
-        'type.Cat':   'Cat',
-        'type.Dog':   'Dog',
-        'type.Bird':  'Bird',
-        'type.Other': 'Other',
+        'type.Cat':    'Cat',
+        'type.Dog':    'Dog',
+        'type.Bird':   'Bird',
+        'type.Rabbit': 'Rabbit',
+        'type.Other':  'Other',
 
         'status.Open':      'Open',
         'status.Resolved':  'Resolved',
@@ -274,11 +305,12 @@ const TRANSLATIONS = {
         'error.required': 'This field is required.',
         'error.email':    'Enter a valid email address.',
 
-        'empty.found':   'No found pet listings yet. Be the first to post!',
-        'empty.lost':    'No lost pet listings at this time.',
-        'empty.forHome': 'No pets listed for adoption yet.',
-        'empty.adopt':   'No adoption requests yet. Be the first to post!',
-        'empty.stories': 'No stories yet. Share the first one!',
+        'empty.found':    'No found pet listings yet. Be the first to post!',
+        'empty.lost':     'No lost pet listings at this time.',
+        'empty.forHome':  'No pets listed for adoption yet.',
+        'empty.adopt':    'No adoption requests yet. Be the first to post!',
+        'empty.stories':  'No stories yet. Share the first one!',
+        'empty.filtered': 'No listings match your filters.',
 
         'loading.listings': 'Loading listings…',
         'loading.stories':  'Loading stories…',
@@ -388,11 +420,18 @@ const TRANSLATIONS = {
         'filter.allCities':     'Все города',
         'filter.allStatuses':   'Все статусы',
         'filter.allCategories': 'Все категории',
+        'filter.cityPlaceholder': 'Город…',
+        'filter.sort.newest':   'Сначала новые',
+        'filter.sort.oldest':   'Сначала старые',
+        'filter.sort.cityAsc':  'Город А-Я',
+        'filter.sort.cityDesc': 'Город Я-А',
+        'filter.clear':         'Сбросить фильтры',
 
-        'type.Cat':   'Кошка',
-        'type.Dog':   'Собака',
-        'type.Bird':  'Птица',
-        'type.Other': 'Другое',
+        'type.Cat':    'Кошка',
+        'type.Dog':    'Собака',
+        'type.Bird':   'Птица',
+        'type.Rabbit': 'Кролик',
+        'type.Other':  'Другое',
 
         'status.Open':      'Открыто',
         'status.Resolved':  'Решено',
@@ -438,11 +477,12 @@ const TRANSLATIONS = {
         'error.required': 'Это поле обязательно.',
         'error.email':    'Введите корректный email.',
 
-        'empty.found':   'Найденных питомцев пока нет. Будьте первым!',
-        'empty.lost':    'Потерянных питомцев пока нет.',
-        'empty.forHome': 'Питомцев для усыновления пока нет.',
-        'empty.adopt':   'Запросов на усыновление пока нет. Будьте первым!',
-        'empty.stories': 'Историй пока нет. Поделитесь первой!',
+        'empty.found':    'Найденных питомцев пока нет. Будьте первым!',
+        'empty.lost':     'Потерянных питомцев пока нет.',
+        'empty.forHome':  'Питомцев для усыновления пока нет.',
+        'empty.adopt':    'Запросов на усыновление пока нет. Будьте первым!',
+        'empty.stories':  'Историй пока нет. Поделитесь первой!',
+        'empty.filtered': 'Нет объявлений, соответствующих фильтрам.',
 
         'loading.listings': 'Загрузка объявлений…',
         'loading.stories':  'Загрузка историй…',
@@ -552,11 +592,18 @@ const TRANSLATIONS = {
         'filter.allCities':     'כל הערים',
         'filter.allStatuses':   'כל הסטטוסים',
         'filter.allCategories': 'כל הקטגוריות',
+        'filter.cityPlaceholder': 'עיר…',
+        'filter.sort.newest':   'החדשים ביותר',
+        'filter.sort.oldest':   'הישנים ביותר',
+        'filter.sort.cityAsc':  'עיר א-ת',
+        'filter.sort.cityDesc': 'עיר ת-א',
+        'filter.clear':         'נקה מסננים',
 
-        'type.Cat':   'חתול',
-        'type.Dog':   'כלב',
-        'type.Bird':  'ציפור',
-        'type.Other': 'אחר',
+        'type.Cat':    'חתול',
+        'type.Dog':    'כלב',
+        'type.Bird':   'ציפור',
+        'type.Rabbit': 'ארנב',
+        'type.Other':  'אחר',
 
         'status.Open':      'פתוח',
         'status.Resolved':  'נפתר',
@@ -602,11 +649,12 @@ const TRANSLATIONS = {
         'error.required': 'שדה זה הוא חובה.',
         'error.email':    'יש להזין כתובת אימייל תקינה.',
 
-        'empty.found':   'עדיין אין חיות שנמצאו. היו הראשונים!',
-        'empty.lost':    'אין חיות אבודות כרגע.',
-        'empty.forHome': 'עדיין אין חיות לאימוץ.',
-        'empty.adopt':   'עדיין אין בקשות אימוץ. היו הראשונים!',
-        'empty.stories': 'עדיין אין סיפורים. שתפו את הראשון!',
+        'empty.found':    'עדיין אין חיות שנמצאו. היו הראשונים!',
+        'empty.lost':     'אין חיות אבודות כרגע.',
+        'empty.forHome':  'עדיין אין חיות לאימוץ.',
+        'empty.adopt':    'עדיין אין בקשות אימוץ. היו הראשונים!',
+        'empty.stories':  'עדיין אין סיפורים. שתפו את הראשון!',
+        'empty.filtered': 'אין מודעות התואמות את הסינון שלך.',
 
         'loading.listings': 'טוען מודעות…',
         'loading.stories':  'טוען סיפורים…',
@@ -779,7 +827,7 @@ const SECTION_STATUSES = {
 };
 
 function rebuildFilterSelects() {
-    const types = ['Cat', 'Dog', 'Bird', 'Other'];
+    const types = ['Cat', 'Dog', 'Bird', 'Rabbit', 'Other'];
 
     ['found', 'lost', 'forHome', 'adopt'].forEach(section => {
         const typeSel = document.getElementById('filter-type-' + section);
@@ -990,42 +1038,21 @@ function showSection(name) {
     if (name === 'home') updateStats();
 }
 
-// ===== CITY FILTER =====
-
-function refreshCityFilter(section, data) {
-    const sel = document.getElementById('filter-city-' + section);
-    if (!sel) return;
-    const cities  = [...new Set(data.map(d => d.city).filter(Boolean))].sort();
-    const current = sel.value;
-    sel.innerHTML = `<option value="">${esc(t('filter.allCities'))}</option>` +
-        cities.map(c => `<option value="${esc(c)}"${c === current ? ' selected' : ''}>${esc(c)}</option>`).join('');
-}
-
 // ===== STANDARD LISTING SECTIONS =====
 
 const LISTING_FIELDS = ['type', 'title', 'city', 'date', 'description', 'email', 'phone', 'status', 'contentLanguage'];
 
+// Filtering/search/sort for API-enabled sections happens server-side (see
+// refreshSectionFromApi + sectionFilters) — `data` here is already the
+// filtered result set, so this just renders it.
 function renderListings(section) {
-    const data    = load(section);
-    const grid    = document.getElementById('listings-' + section);
-    const empty   = document.getElementById('empty-' + section);
-    const search  = (document.getElementById('search-' + section)?.value ?? '').toLowerCase();
-    const typeVal = document.getElementById('filter-type-' + section)?.value ?? '';
-    const cityVal = document.getElementById('filter-city-' + section)?.value ?? '';
-    const statVal = document.getElementById('filter-status-' + section)?.value ?? '';
+    const data  = load(section);
+    const grid  = document.getElementById('listings-' + section);
+    const empty = document.getElementById('empty-' + section);
 
-    refreshCityFilter(section, data);
-
-    const filtered = data.filter(item => {
-        const txt = (item.title + ' ' + item.city + ' ' + item.description).toLowerCase();
-        return (!search  || txt.includes(search))
-            && (!typeVal || item.type   === typeVal)
-            && (!cityVal || item.city   === cityVal)
-            && (!statVal || item.status === statVal);
-    });
-
-    if (filtered.length === 0) {
+    if (data.length === 0) {
         grid.innerHTML = '';
+        empty.textContent = isSectionFilterActive(section) ? t('empty.filtered') : t('empty.' + section);
         empty.classList.remove('hidden');
         return;
     }
@@ -1035,7 +1062,7 @@ function renderListings(section) {
                   : section === 'lost'  ? 'card.dateLost'
                   : 'card.datePosted';
 
-    grid.innerHTML = filtered.map(item => {
+    grid.innerHTML = data.map(item => {
         const localTitle     = getLocalizedField(item, 'title');
         const localDesc      = getLocalizedField(item, 'description');
         const photoSrc       = getPhotoSource(item);
@@ -1289,11 +1316,50 @@ function setupListingSection(section) {
         }
     });
 
-    ['search', 'filter-type', 'filter-city', 'filter-status'].forEach(prefix => {
-        document.getElementById(prefix + '-' + section)
-            ?.addEventListener('input',  () => renderListings(section));
-        document.getElementById(prefix + '-' + section)
-            ?.addEventListener('change', () => renderListings(section));
+    // Filters/search/sort reload the section from the API with the new
+    // query params. Text inputs are debounced; selects reload immediately.
+    const filters        = getSectionFilters(section);
+    const reloadNow       = () => refreshSectionFromApi(section);
+    const reloadDebounced = debounce(reloadNow, 300);
+
+    document.getElementById('search-' + section)?.addEventListener('input', e => {
+        filters.q = e.target.value.trim();
+        reloadDebounced();
+    });
+
+    document.getElementById('filter-type-' + section)?.addEventListener('change', e => {
+        filters.petType = e.target.value;
+        reloadNow();
+    });
+
+    document.getElementById('filter-city-' + section)?.addEventListener('input', e => {
+        filters.city = e.target.value.trim();
+        reloadDebounced();
+    });
+
+    document.getElementById('filter-status-' + section)?.addEventListener('change', e => {
+        filters.status = e.target.value;
+        reloadNow();
+    });
+
+    document.getElementById('filter-sort-' + section)?.addEventListener('change', e => {
+        filters.sort = e.target.value || 'newest';
+        reloadNow();
+    });
+
+    document.getElementById('clearFilters-' + section)?.addEventListener('click', () => {
+        Object.assign(filters, { q: '', petType: '', city: '', status: '', sort: 'newest' });
+        const searchEl = document.getElementById('search-' + section);
+        const typeEl   = document.getElementById('filter-type-' + section);
+        const cityEl   = document.getElementById('filter-city-' + section);
+        const statusEl = document.getElementById('filter-status-' + section);
+        const sortEl   = document.getElementById('filter-sort-' + section);
+        if (searchEl) searchEl.value = '';
+        if (typeEl)   typeEl.value   = '';
+        if (cityEl)   cityEl.value   = '';
+        if (statusEl) statusEl.value = '';
+        if (sortEl)   sortEl.value   = 'newest';
+        reloadNow();
     });
 }
 
