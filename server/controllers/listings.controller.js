@@ -3,7 +3,23 @@ const { pool } = require('../db/connection');
 const ALLOWED_SCENARIOS = ['found', 'lost', 'for_home', 'adopt'];
 const ALLOWED_PET_TYPES = ['cat', 'dog', 'bird', 'rabbit', 'other'];
 const ALLOWED_LANGUAGES = ['en', 'ru', 'he'];
+const ALLOWED_SORTS     = ['newest', 'oldest', 'city_asc', 'city_desc'];
 const DATE_ONLY_RE      = /^\d{4}-\d{2}-\d{2}$/;
+const POSITIVE_INT_RE   = /^\d+$/;
+const MAX_LIMIT         = 100;
+const DEFAULT_LIMIT     = 50;
+
+// Columns searched by the `q` free-text query parameter.
+const SEARCH_COLUMNS = [
+  'pet_name_or_title', 'breed', 'city', 'description', 'contact_email', 'contact_phone',
+];
+
+const SORT_CLAUSES = {
+  newest:    'created_at DESC',
+  oldest:    'created_at ASC',
+  city_asc:  'city ASC, created_at DESC',
+  city_desc: 'city DESC, created_at DESC',
+};
 
 // deleted_at IS NULL is the base filter — soft-deleted rows are never returned.
 const BASE_SELECT = `
@@ -73,6 +89,58 @@ function validateListingPayload(body) {
   };
 }
 
+// A query param counts as "present" only when it's a non-empty string —
+// Express gives us '' for `?city=` and that should be treated as absent.
+function presentString(raw) {
+  return typeof raw === 'string' && raw.trim() !== '' ? raw.trim() : undefined;
+}
+
+function parsePositiveInt(raw, label, errors, fallback) {
+  if (raw === undefined) return fallback;
+  const str = String(raw).trim();
+  const n   = POSITIVE_INT_RE.test(str) ? parseInt(str, 10) : NaN;
+  if (!Number.isInteger(n) || n <= 0) {
+    errors.push(`${label} must be a positive integer`);
+    return fallback;
+  }
+  return n;
+}
+
+function validateListingQuery(query) {
+  const scenario = presentString(query.scenario);
+  const petType  = presentString(query.petType);
+  const city     = presentString(query.city);
+  const status   = presentString(query.status);
+  const q        = presentString(query.q);
+  const sort     = presentString(query.sort) ?? 'newest';
+
+  const errors = [];
+
+  if (scenario !== undefined && !ALLOWED_SCENARIOS.includes(scenario))
+    errors.push('Invalid scenario');
+
+  if (petType !== undefined && !ALLOWED_PET_TYPES.includes(petType))
+    errors.push('Invalid petType');
+
+  if (!ALLOWED_SORTS.includes(sort))
+    errors.push('Invalid sort');
+
+  const page = parsePositiveInt(query.page, 'page', errors, 1);
+
+  let limit = parsePositiveInt(query.limit, 'limit', errors, DEFAULT_LIMIT);
+  if (limit !== undefined && limit > MAX_LIMIT) {
+    errors.push(`limit must not exceed ${MAX_LIMIT}`);
+  }
+
+  return {
+    errors,
+    values: {
+      scenario, petType, city, status, q, sort, page, limit,
+      withMeta: query.withMeta === 'true',
+    },
+  };
+}
+
 function toApiShape(row) {
   return {
     id:              row.id,
@@ -102,25 +170,51 @@ async function fetchById(id) {
 // ── Route handlers ───────────────────────────────────────────────────────────
 
 async function getListings(req, res) {
-  const { scenario } = req.query;
-
-  if (scenario !== undefined && !ALLOWED_SCENARIOS.includes(scenario)) {
-    return res.status(400).json({ status: 'error', message: 'Invalid scenario' });
+  const { errors, values } = validateListingQuery(req.query);
+  if (errors.length > 0) {
+    return res.status(400).json({ status: 'error', message: 'Validation error', details: errors });
   }
 
-  try {
-    let sql = BASE_SELECT;
-    const params = [];
+  const { scenario, petType, city, status, q, sort, page, limit, withMeta } = values;
 
-    if (scenario) {
-      sql += ' AND scenario = ?';
-      params.push(scenario);
+  const conditions = [];
+  const params     = [];
+
+  if (scenario) { conditions.push('scenario = ?');       params.push(scenario); }
+  if (petType)  { conditions.push('pet_type = ?');        params.push(petType); }
+  if (city)     { conditions.push('LOWER(city) LIKE ?');  params.push(`%${city.toLowerCase()}%`); }
+  if (status)   { conditions.push('LOWER(status) = ?');   params.push(status.toLowerCase()); }
+  if (q) {
+    const like = `%${q.toLowerCase()}%`;
+    conditions.push('(' + SEARCH_COLUMNS.map(c => `LOWER(${c}) LIKE ?`).join(' OR ') + ')');
+    SEARCH_COLUMNS.forEach(() => params.push(like));
+  }
+
+  const whereExtra = conditions.length ? ' AND ' + conditions.join(' AND ') : '';
+  const orderBy    = SORT_CLAUSES[sort];
+
+  try {
+    let total = null;
+    if (withMeta) {
+      const [countRows] = await pool.query(
+        `SELECT COUNT(*) AS total FROM listings WHERE deleted_at IS NULL${whereExtra}`,
+        params
+      );
+      total = countRows[0].total;
     }
 
-    sql += ' ORDER BY created_at DESC';
+    const offset = (page - 1) * limit;
+    const sql    = `${BASE_SELECT}${whereExtra} ORDER BY ${orderBy} LIMIT ? OFFSET ?`;
+    const [rows] = await pool.query(sql, [...params, limit, offset]);
 
-    const [rows] = await pool.query(sql, params);
-    res.json(rows.map(toApiShape));
+    if (!withMeta) {
+      return res.json(rows.map(toApiShape));
+    }
+
+    res.json({
+      items: rows.map(toApiShape),
+      pagination: { page, limit, total, totalPages: Math.max(1, Math.ceil(total / limit)) },
+    });
   } catch (err) {
     console.error('getListings error:', err.message);
     res.status(500).json({ status: 'error', message: 'Failed to fetch listings' });
