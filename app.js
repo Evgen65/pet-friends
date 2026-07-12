@@ -717,8 +717,22 @@ function t(key) {
 }
 
 function tType(type)     { return type   ? t('type.'   + type)   : ''; }
-function tStatus(status) { return status ? t('status.' + status) : ''; }
 function tCat(cat)       { return cat    ? t('cat.'    + cat)    : ''; }
+
+// Known status values, keyed by their translation suffix (status.<Key>).
+// Listings created directly via the API/Postman may store status in any
+// case ("open", "OPEN", ...) — normalize before lookup so the badge never
+// shows a raw i18n key like "status.open" to the user.
+const KNOWN_STATUSES = ['Open', 'Resolved', 'Available', 'Adopted', 'Matched'];
+
+function tStatus(status) {
+    const raw = String(status || '').trim();
+    if (!raw) return '';
+    const known = KNOWN_STATUSES.find(s => s.toLowerCase() === raw.toLowerCase());
+    if (known) return t('status.' + known);
+    // Unrecognized status: fall back to a readable label instead of the raw key.
+    return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+}
 
 function getLocalizedField(item, fieldName) {
     const lang    = document.documentElement.lang || DEFAULT_LANG;
