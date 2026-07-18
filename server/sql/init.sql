@@ -42,3 +42,14 @@ CREATE TABLE IF NOT EXISTS pet_stories (
   created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS users (
+  id            INT AUTO_INCREMENT PRIMARY KEY,
+  name          VARCHAR(120) NOT NULL,
+  email         VARCHAR(255) NOT NULL UNIQUE,
+  password_hash VARCHAR(255) NOT NULL,
+  role          ENUM('user', 'admin') NOT NULL DEFAULT 'user',
+  status        ENUM('active', 'blocked') NOT NULL DEFAULT 'active',
+  created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
