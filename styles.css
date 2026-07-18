@@ -61,6 +61,15 @@ header {
     height: 60px;
 }
 
+@media (max-width: 560px) {
+    .header-inner {
+        flex-wrap: wrap;
+        height: auto;
+        padding: 0.6rem 1rem;
+        row-gap: 0.5rem;
+    }
+}
+
 .logo {
     font-size: 1.35rem;
     font-weight: 700;
@@ -805,7 +814,7 @@ footer {
     #mainNav {
         display: none;
         position: absolute;
-        top: 60px;
+        top: 100%;
         left: 0;
         right: 0;
         background: var(--white);
@@ -836,6 +845,92 @@ footer {
     .action-cards  { grid-template-columns: 1fr; }
     .stats-bar     { gap: 1rem; }
     .listing-form  { padding: 1.25rem; }
+}
+
+/* ===== AUTH ===== */
+.auth-actions,
+.auth-user {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+.auth-button {
+    padding: 0.4rem 0.9rem;
+    font-size: 0.8rem;
+}
+
+.auth-user-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.auth-modal { max-width: 420px; }
+
+.auth-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+    border-bottom: 1px solid var(--border);
+}
+.auth-tab {
+    flex: 1;
+    background: none;
+    border: none;
+    padding: 0.6rem 0.5rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-2);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: var(--trans);
+}
+.auth-tab:hover   { color: var(--text); }
+.auth-tab.active  { color: var(--primary); border-bottom-color: var(--primary); }
+
+.auth-form.hidden { display: none; }
+
+.auth-error,
+.auth-success {
+    padding: 0.65rem 0.9rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+}
+.auth-error   { background: var(--lost-light);  color: var(--lost); }
+.auth-success { background: var(--found-light); color: var(--found); }
+
+.auth-switch {
+    margin-top: 1rem;
+    font-size: 0.85rem;
+    color: var(--text-2);
+    text-align: center;
+}
+.auth-link {
+    background: none;
+    border: none;
+    color: var(--primary);
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    padding: 0;
+    margin-inline-start: 0.3rem;
+}
+.auth-link:hover { text-decoration: underline; }
+
+@media (max-width: 1150px) {
+    .auth-user-name { display: none; }
+}
+
+@media (max-width: 480px) {
+    .auth-actions .auth-button,
+    .auth-user .auth-button { padding: 0.35rem 0.7rem; font-size: 0.75rem; }
 }
 
 /* ===== LANGUAGE SWITCHER ===== */

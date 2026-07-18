@@ -20,6 +20,14 @@
                 <a href="#" class="nav-link" data-section="stories" data-i18n="nav.stories">Pet Stories</a>
                 <a href="#" class="nav-link" data-section="contact" data-i18n="nav.contact">Contact</a>
             </nav>
+            <div class="auth-actions" id="authActionsGuest">
+                <button type="button" class="btn btn-secondary auth-button" id="openSignInBtn" data-i18n="auth.signIn">Sign in</button>
+                <button type="button" class="btn btn-primary auth-button" id="openSignUpBtn" data-i18n="auth.signUp">Sign up</button>
+            </div>
+            <div class="auth-user hidden" id="authActionsUser">
+                <span class="auth-user-name" id="authUserName"></span>
+                <button type="button" class="btn btn-secondary auth-button" id="signOutBtn" data-i18n="auth.signOut">Sign out</button>
+            </div>
             <div class="lang-switcher">
                 <button class="lang-btn" data-lang="en">English</button>
                 <button class="lang-btn" data-lang="ru">Русский</button>
@@ -711,8 +719,77 @@
         </div>
     </div>
 
+    <!-- ===== AUTH MODAL ===== -->
+    <div id="authModalOverlay" class="modal-overlay hidden">
+        <div class="modal auth-modal" role="dialog" aria-modal="true" aria-labelledby="authModalTitle">
+            <div class="modal-header">
+                <h2 id="authModalTitle" data-i18n="auth.signIn">Sign in</h2>
+                <button type="button" class="modal-close" id="authModalClose" aria-label="Close" data-i18n-aria-label="btn.close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="auth-tabs">
+                    <button type="button" class="auth-tab active" id="authTabSignIn" data-i18n="auth.signIn">Sign in</button>
+                    <button type="button" class="auth-tab" id="authTabSignUp" data-i18n="auth.signUp">Sign up</button>
+                </div>
+                <div class="auth-error hidden" id="authFormError" role="alert"></div>
+                <div class="auth-success hidden" id="authFormSuccess" role="status"></div>
+
+                <form id="authSignInForm" class="auth-form" novalidate>
+                    <div class="form-group">
+                        <label for="signin-email" data-i18n="auth.email">Email</label>
+                        <input type="email" id="signin-email" name="email" autocomplete="email" required>
+                        <span class="field-error" id="signin-email-error"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="signin-password" data-i18n="auth.password">Password</label>
+                        <input type="password" id="signin-password" name="password" autocomplete="current-password" required>
+                        <span class="field-error" id="signin-password-error"></span>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary" data-i18n="auth.signIn">Sign in</button>
+                    </div>
+                    <p class="auth-switch">
+                        <span data-i18n="auth.needAccount">Need an account?</span>
+                        <button type="button" class="auth-link" id="switchToSignUp" data-i18n="auth.signUp">Sign up</button>
+                    </p>
+                </form>
+
+                <form id="authSignUpForm" class="auth-form hidden" novalidate>
+                    <div class="form-group">
+                        <label for="signup-name" data-i18n="auth.name">Name</label>
+                        <input type="text" id="signup-name" name="name" autocomplete="name" required>
+                        <span class="field-error" id="signup-name-error"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="signup-email" data-i18n="auth.email">Email</label>
+                        <input type="email" id="signup-email" name="email" autocomplete="email" required>
+                        <span class="field-error" id="signup-email-error"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="signup-password" data-i18n="auth.password">Password</label>
+                        <input type="password" id="signup-password" name="password" autocomplete="new-password" required>
+                        <span class="field-error" id="signup-password-error"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="signup-confirmPassword" data-i18n="auth.confirmPassword">Confirm password</label>
+                        <input type="password" id="signup-confirmPassword" name="confirmPassword" autocomplete="new-password" required>
+                        <span class="field-error" id="signup-confirmPassword-error"></span>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary" data-i18n="auth.signUp">Sign up</button>
+                    </div>
+                    <p class="auth-switch">
+                        <span data-i18n="auth.haveAccount">Already have an account?</span>
+                        <button type="button" class="auth-link" id="switchToSignIn" data-i18n="auth.signIn">Sign in</button>
+                    </p>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script src="scripts/data/listingsDataSource.js"></script>
     <script src="scripts/data/storiesDataSource.js"></script>
+    <script src="scripts/data/authDataSource.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

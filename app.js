@@ -12,6 +12,13 @@ const KEYS = {
     seeded:           'pf_seeded',
 };
 
+// ===== AUTH STORAGE KEYS =====
+
+const AUTH_TOKEN_KEY = 'pf_auth_token';
+const AUTH_USER_KEY  = 'pf_auth_user';
+
+let currentUser = null; // safe user object ({ id, name, email, role, status }) or null when signed out
+
 // Per-section in-memory cache for API-enabled sections — populated by refreshSectionFromApi().
 const apiListingsCache = {};
 
@@ -440,6 +447,26 @@ const TRANSLATIONS = {
         'photo.alt.generic': 'Pet photo',
         'error.storage':     'The image could not be saved because browser storage is full. Try a smaller image or remove an existing photo.',
         'error.save':        'Could not save. Please try again.',
+
+        'auth.signIn':          'Sign in',
+        'auth.signUp':          'Sign up',
+        'auth.signOut':         'Sign out',
+        'auth.name':            'Name',
+        'auth.email':           'Email',
+        'auth.password':        'Password',
+        'auth.confirmPassword': 'Confirm password',
+        'auth.needAccount':     'Need an account?',
+        'auth.haveAccount':     'Already have an account?',
+
+        'auth.error.passwordTooShort':    'Password must be at least 8 characters',
+        'auth.error.passwordMismatch':    'Passwords do not match',
+        'auth.error.invalidCredentials':  'Invalid email or password',
+        'auth.error.emailExists':         'An account with this email already exists.',
+        'auth.error.unavailable':         'Could not connect to the server. Please try again later.',
+        'auth.error.generic':             'Something went wrong. Please try again.',
+
+        'auth.toast.signedIn':  'You are signed in',
+        'auth.toast.signedOut': 'You are signed out',
     },
 
     ru: {
@@ -626,6 +653,26 @@ const TRANSLATIONS = {
         'photo.alt.generic': 'Фото питомца',
         'error.storage':     'Не удалось сохранить изображение: хранилище браузера заполнено. Выберите изображение меньшего размера или удалите существующую фотографию.',
         'error.save':        'Не удалось сохранить. Пожалуйста, попробуйте ещё раз.',
+
+        'auth.signIn':          'Войти',
+        'auth.signUp':          'Регистрация',
+        'auth.signOut':         'Выйти',
+        'auth.name':            'Имя',
+        'auth.email':           'Email',
+        'auth.password':        'Пароль',
+        'auth.confirmPassword': 'Подтверждение пароля',
+        'auth.needAccount':     'Нет аккаунта?',
+        'auth.haveAccount':     'Уже есть аккаунт?',
+
+        'auth.error.passwordTooShort':    'Пароль должен содержать не менее 8 символов',
+        'auth.error.passwordMismatch':    'Пароли не совпадают',
+        'auth.error.invalidCredentials':  'Неверный email или пароль',
+        'auth.error.emailExists':         'Аккаунт с таким email уже существует.',
+        'auth.error.unavailable':         'Не удалось подключиться к серверу. Попробуйте позже.',
+        'auth.error.generic':             'Что-то пошло не так. Пожалуйста, попробуйте ещё раз.',
+
+        'auth.toast.signedIn':  'Вы вошли в систему',
+        'auth.toast.signedOut': 'Вы вышли из системы',
     },
 
     he: {
@@ -812,6 +859,26 @@ const TRANSLATIONS = {
         'photo.alt.generic': 'תמונת חיית מחמד',
         'error.storage':     'לא ניתן לשמור את התמונה כי אחסון הדפדפן מלא. נסו תמונה קטנה יותר או הסירו תמונה קיימת.',
         'error.save':        'לא ניתן לשמור. אנא נסו שוב.',
+
+        'auth.signIn':          'התחברות',
+        'auth.signUp':          'הרשמה',
+        'auth.signOut':         'התנתקות',
+        'auth.name':            'שם',
+        'auth.email':           'אימייל',
+        'auth.password':        'סיסמה',
+        'auth.confirmPassword': 'אימות סיסמה',
+        'auth.needAccount':     'אין לך חשבון?',
+        'auth.haveAccount':     'כבר יש לך חשבון?',
+
+        'auth.error.passwordTooShort':    'הסיסמה חייבת להכיל לפחות 8 תווים',
+        'auth.error.passwordMismatch':    'הסיסמאות אינן תואמות',
+        'auth.error.invalidCredentials':  'אימייל או סיסמה שגויים',
+        'auth.error.emailExists':         'קיים כבר חשבון עם אימייל זה.',
+        'auth.error.unavailable':         'לא ניתן להתחבר לשרת. נסו שוב מאוחר יותר.',
+        'auth.error.generic':             'משהו השתבש. אנא נסו שוב.',
+
+        'auth.toast.signedIn':  'התחברת בהצלחה',
+        'auth.toast.signedOut': 'התנתקת בהצלחה',
     },
 };
 
@@ -1611,6 +1678,209 @@ function closeListingDetailsModal() {
     detailsRequestId++; // invalidate any in-flight request
 }
 
+// ===== AUTH =====
+
+function getAuthToken() {
+    return localStorage.getItem(AUTH_TOKEN_KEY);
+}
+
+function persistAuthSession(token, user) {
+    localStorage.setItem(AUTH_TOKEN_KEY, token);
+    localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
+    currentUser = user;
+    renderAuthUI();
+}
+
+function clearAuthSession() {
+    localStorage.removeItem(AUTH_TOKEN_KEY);
+    localStorage.removeItem(AUTH_USER_KEY);
+    currentUser = null;
+    renderAuthUI();
+}
+
+function renderAuthUI() {
+    const guestEl = document.getElementById('authActionsGuest');
+    const userEl  = document.getElementById('authActionsUser');
+    const nameEl  = document.getElementById('authUserName');
+    if (!guestEl || !userEl) return;
+    if (currentUser) {
+        guestEl.classList.add('hidden');
+        userEl.classList.remove('hidden');
+        if (nameEl) nameEl.textContent = currentUser.name || currentUser.email || '';
+    } else {
+        guestEl.classList.remove('hidden');
+        userEl.classList.add('hidden');
+    }
+}
+
+// Restores auth state on page load. Renders any cached user immediately
+// (so the header doesn't flash guest state), then verifies the token against
+// GET /api/auth/me — an invalid/expired token clears the stored session.
+async function initAuth() {
+    const token = getAuthToken();
+    if (!token) { renderAuthUI(); return; }
+
+    try {
+        const cached = JSON.parse(localStorage.getItem(AUTH_USER_KEY) || 'null');
+        if (cached) { currentUser = cached; renderAuthUI(); }
+    } catch {
+        // Corrupt cache — ignore, /me below is the source of truth.
+    }
+
+    try {
+        const { user } = await window.PetFriendsAuthDataSource.me(token);
+        persistAuthSession(token, user);
+    } catch (err) {
+        console.error('Auth session check failed:', err.message);
+        clearAuthSession();
+    }
+}
+
+function hideAuthMessages() {
+    document.getElementById('authFormError')?.classList.add('hidden');
+    document.getElementById('authFormSuccess')?.classList.add('hidden');
+}
+
+function showAuthError(msg) {
+    hideAuthMessages();
+    const el = document.getElementById('authFormError');
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.remove('hidden');
+}
+
+function resetAuthForms() {
+    const signInForm = document.getElementById('authSignInForm');
+    const signUpForm = document.getElementById('authSignUpForm');
+    signInForm?.reset();
+    signUpForm?.reset();
+    if (signInForm) clearErrors(signInForm);
+    if (signUpForm) clearErrors(signUpForm);
+    hideAuthMessages();
+}
+
+function switchAuthTab(mode) {
+    const isSignIn = mode !== 'signup';
+    document.getElementById('authTabSignIn')?.classList.toggle('active', isSignIn);
+    document.getElementById('authTabSignUp')?.classList.toggle('active', !isSignIn);
+    document.getElementById('authSignInForm')?.classList.toggle('hidden', !isSignIn);
+    document.getElementById('authSignUpForm')?.classList.toggle('hidden', isSignIn);
+    const title = document.getElementById('authModalTitle');
+    if (title) title.textContent = t(isSignIn ? 'auth.signIn' : 'auth.signUp');
+    hideAuthMessages();
+}
+
+function openAuthModal(mode) {
+    const overlay = document.getElementById('authModalOverlay');
+    if (!overlay) return;
+    resetAuthForms();
+    switchAuthTab(mode);
+    overlay.classList.remove('hidden');
+    document.body.classList.add('modal-open');
+}
+
+function closeAuthModal() {
+    const overlay = document.getElementById('authModalOverlay');
+    if (!overlay || overlay.classList.contains('hidden')) return;
+    overlay.classList.add('hidden');
+    document.body.classList.remove('modal-open');
+}
+
+// Extra sign-up-only checks layered on top of the generic required/email
+// checks in validateForm() — password length and confirm-password match.
+function validateSignUpForm(form) {
+    let valid = validateForm(form);
+
+    const pwEl      = form.querySelector('#signup-password');
+    const confirmEl = form.querySelector('#signup-confirmPassword');
+
+    if (pwEl.value && pwEl.value.length < 8) {
+        markInvalid(pwEl, t('auth.error.passwordTooShort'));
+        valid = false;
+    }
+    if (confirmEl.value && pwEl.value !== confirmEl.value) {
+        markInvalid(confirmEl, t('auth.error.passwordMismatch'));
+        valid = false;
+    }
+
+    if (!valid) form.querySelector('.invalid')?.focus();
+    return valid;
+}
+
+// Maps a thrown authDataSource error (see authDataSource._parseResponse) to a
+// user-friendly, translated message. A missing err.status means fetch()
+// itself rejected — the backend is unreachable rather than having returned
+// an error response.
+function mapAuthError(err) {
+    if (!err.status) return t('auth.error.unavailable');
+    if (err.status === 409) return t('auth.error.emailExists');
+    if (err.status === 401) return t('auth.error.invalidCredentials');
+    if (err.status === 400 && Array.isArray(err.details) && err.details.length) {
+        return err.details.join(' ');
+    }
+    return err.message || t('auth.error.generic');
+}
+
+async function handleSignIn(e) {
+    e.preventDefault();
+    const form = e.target;
+    hideAuthMessages();
+    if (!validateForm(form)) return;
+
+    const email     = form.querySelector('#signin-email').value.trim();
+    const password  = form.querySelector('#signin-password').value;
+    const submitBtn = form.querySelector('button[type="submit"]');
+
+    submitBtn.disabled = true;
+    try {
+        const { user, token } = await window.PetFriendsAuthDataSource.signin(email, password);
+        persistAuthSession(token, user);
+        closeAuthModal();
+        showToast(t('auth.toast.signedIn'));
+    } catch (err) {
+        showAuthError(mapAuthError(err));
+    } finally {
+        submitBtn.disabled = false;
+    }
+}
+
+async function handleSignUp(e) {
+    e.preventDefault();
+    const form = e.target;
+    hideAuthMessages();
+    if (!validateSignUpForm(form)) return;
+
+    const name      = form.querySelector('#signup-name').value.trim();
+    const email     = form.querySelector('#signup-email').value.trim();
+    const password  = form.querySelector('#signup-password').value;
+    const submitBtn = form.querySelector('button[type="submit"]');
+
+    submitBtn.disabled = true;
+    try {
+        const { user, token } = await window.PetFriendsAuthDataSource.signup(name, email, password);
+        persistAuthSession(token, user);
+        closeAuthModal();
+        showToast(t('auth.toast.signedIn'));
+    } catch (err) {
+        showAuthError(mapAuthError(err));
+    } finally {
+        submitBtn.disabled = false;
+    }
+}
+
+async function handleSignOut() {
+    const token = getAuthToken();
+    clearAuthSession();
+    showToast(t('auth.toast.signedOut'));
+    if (token) {
+        try {
+            await window.PetFriendsAuthDataSource.signout(token);
+        } catch (err) {
+            console.error('Sign out request failed:', err.message);
+        }
+    }
+}
+
 // ===== STORIES =====
 
 function renderStories() {
@@ -2249,8 +2519,28 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (e.target.id === 'listingDetailsOverlay') closeListingDetailsModal();
     });
     document.addEventListener('keydown', e => {
-        if (e.key === 'Escape') closeListingDetailsModal();
+        if (e.key === 'Escape') {
+            closeListingDetailsModal();
+            closeAuthModal();
+        }
     });
+
+    // Auth — header buttons open the sign in / sign up modal
+    document.getElementById('openSignInBtn')?.addEventListener('click', () => openAuthModal('signin'));
+    document.getElementById('openSignUpBtn')?.addEventListener('click', () => openAuthModal('signup'));
+    document.getElementById('signOutBtn')?.addEventListener('click', handleSignOut);
+
+    // Auth modal — tabs, switch links, close via X or overlay click, form submits
+    document.getElementById('authTabSignIn')?.addEventListener('click', () => switchAuthTab('signin'));
+    document.getElementById('authTabSignUp')?.addEventListener('click', () => switchAuthTab('signup'));
+    document.getElementById('switchToSignUp')?.addEventListener('click', () => switchAuthTab('signup'));
+    document.getElementById('switchToSignIn')?.addEventListener('click', () => switchAuthTab('signin'));
+    document.getElementById('authModalClose')?.addEventListener('click', closeAuthModal);
+    document.getElementById('authModalOverlay')?.addEventListener('click', e => {
+        if (e.target.id === 'authModalOverlay') closeAuthModal();
+    });
+    document.getElementById('authSignInForm')?.addEventListener('submit', handleSignIn);
+    document.getElementById('authSignUpForm')?.addEventListener('submit', handleSignUp);
 
     // Set up listing sections (event listeners; initial render happens inside initLanguage)
     ['found', 'lost', 'forHome', 'adopt'].forEach(s => setupListingSection(s));
@@ -2266,4 +2556,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Load API-enabled sections from backend — non-blocking, runs after first paint.
     window.PetFriendsListingsDataSource.API_ENABLED_SECTIONS.forEach(s => refreshSectionFromApi(s));
     refreshStoriesFromApi();
+
+    // Restore auth session (verifies any stored token) — non-blocking.
+    initAuth();
 });
