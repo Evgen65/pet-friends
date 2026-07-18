@@ -190,6 +190,9 @@
             </div>
             <div id="message-found" class="section-message hidden" role="status" aria-live="polite"></div>
             <div id="listings-found" class="listings-grid"></div>
+            <div id="loadMoreWrapper-found" class="load-more-wrapper hidden">
+                <button type="button" id="loadMoreBtn-found" class="btn btn-secondary load-more-button" data-i18n="btn.loadMore">Load more</button>
+            </div>
             <div id="empty-found" class="empty-state hidden" data-i18n="empty.found">No found pet listings yet. Be the first to post!</div>
         </section>
 
@@ -312,6 +315,9 @@
             </div>
             <div id="message-lost" class="section-message hidden" role="status" aria-live="polite"></div>
             <div id="listings-lost" class="listings-grid"></div>
+            <div id="loadMoreWrapper-lost" class="load-more-wrapper hidden">
+                <button type="button" id="loadMoreBtn-lost" class="btn btn-secondary load-more-button" data-i18n="btn.loadMore">Load more</button>
+            </div>
             <div id="empty-lost" class="empty-state hidden" data-i18n="empty.lost">No lost pet listings at this time.</div>
         </section>
 
@@ -434,6 +440,9 @@
             </div>
             <div id="message-forHome" class="section-message hidden" role="status" aria-live="polite"></div>
             <div id="listings-forHome" class="listings-grid"></div>
+            <div id="loadMoreWrapper-forHome" class="load-more-wrapper hidden">
+                <button type="button" id="loadMoreBtn-forHome" class="btn btn-secondary load-more-button" data-i18n="btn.loadMore">Load more</button>
+            </div>
             <div id="empty-forHome" class="empty-state hidden" data-i18n="empty.forHome">No pets listed for adoption yet.</div>
         </section>
 
@@ -556,6 +565,9 @@
             </div>
             <div id="message-adopt" class="section-message hidden" role="status" aria-live="polite"></div>
             <div id="listings-adopt" class="listings-grid"></div>
+            <div id="loadMoreWrapper-adopt" class="load-more-wrapper hidden">
+                <button type="button" id="loadMoreBtn-adopt" class="btn btn-secondary load-more-button" data-i18n="btn.loadMore">Load more</button>
+            </div>
             <div id="empty-adopt" class="empty-state hidden" data-i18n="empty.adopt">No adoption requests yet. Be the first to post!</div>
         </section>
 
@@ -687,6 +699,17 @@
     </footer>
 
     <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+
+    <!-- ===== LISTING DETAILS MODAL ===== -->
+    <div id="listingDetailsOverlay" class="modal-overlay hidden">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="listingDetailsTitle">
+            <div class="modal-header">
+                <h2 id="listingDetailsTitle" data-i18n="modal.details.title">Listing details</h2>
+                <button type="button" class="modal-close" id="listingDetailsClose" aria-label="Close" data-i18n-aria-label="btn.close">&times;</button>
+            </div>
+            <div class="modal-body" id="listingDetailsBody"></div>
+        </div>
+    </div>
 
     <script src="scripts/data/listingsDataSource.js"></script>
     <script src="scripts/data/storiesDataSource.js"></script>

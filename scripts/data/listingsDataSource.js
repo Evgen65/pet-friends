@@ -117,6 +117,7 @@ window.PetFriendsListingsDataSource = (function () {
             createdAt: rec.createdAt
                            ? new Date(rec.createdAt).getTime()
                            : Date.now(),
+            updatedAt: rec.updatedAt ? new Date(rec.updatedAt).getTime() : null,
         };
     }
 
@@ -151,9 +152,16 @@ window.PetFriendsListingsDataSource = (function () {
     // values are omitted from the query string; petType is lower-cased to
     // match the backend ENUM; sort is only sent when it differs from the
     // backend's default ('newest').
-    async function apiGetListings(sectionKey, filters = {}) {
+    //
+    // pagination: { page, limit, withMeta } — all optional. When withMeta is
+    // requested the backend responds with { items, pagination }; this always
+    // resolves to that shape, normalizing a plain-array response (the
+    // backend's backwards-compatible default, or a defensive fallback if
+    // withMeta is ever ignored) into a single-page result instead of
+    // crashing the caller.
+    async function apiGetListings(sectionKey, filters = {}, pagination = {}) {
         const scenario = mapSectionKeyToScenario(sectionKey);
-        if (!scenario) return [];
+        if (!scenario) return { items: [], pagination: { page: 1, limit: 0, total: 0, totalPages: 1 } };
 
         const params = new URLSearchParams();
         params.set('scenario', scenario);
@@ -165,9 +173,25 @@ window.PetFriendsListingsDataSource = (function () {
         if (status)                     params.set('status', status);
         if (sort && sort !== 'newest')  params.set('sort', sort);
 
+        const { page, limit, withMeta } = pagination;
+        if (page)     params.set('page', page);
+        if (limit)    params.set('limit', limit);
+        if (withMeta) params.set('withMeta', 'true');
+
         const res = await fetch(`${API_BASE_URL}?${params.toString()}`);
         if (!res.ok) throw new Error(`GET listings failed (${res.status})`);
-        return (await res.json()).map(fromApiRecord);
+        const json = await res.json();
+
+        if (Array.isArray(json)) {
+            const items = json.map(fromApiRecord);
+            return { items, pagination: { page: 1, limit: items.length, total: items.length, totalPages: 1 } };
+        }
+
+        const items = (json.items ?? []).map(fromApiRecord);
+        return {
+            items,
+            pagination: json.pagination ?? { page: 1, limit: items.length, total: items.length, totalPages: 1 },
+        };
     }
 
     async function apiGetListingById(sectionKey, id) {

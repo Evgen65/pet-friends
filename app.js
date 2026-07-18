@@ -29,6 +29,27 @@ function isSectionFilterActive(section) {
     return !!(f.q || f.petType || f.city || f.status || (f.sort && f.sort !== 'newest'));
 }
 
+// ===== "LOAD MORE" PAGINATION (listing sections only, not Pet Stories) =====
+
+const LISTINGS_PAGE_SIZE = 12;
+const sectionPagination  = {};
+
+function getSectionPagination(section) {
+    return sectionPagination[section] ?? (sectionPagination[section] = {
+        page: 1, totalPages: 1, total: 0, loadingMore: false,
+    });
+}
+
+function updateLoadMoreButton(section) {
+    const wrapper = document.getElementById('loadMoreWrapper-' + section);
+    const btn     = document.getElementById('loadMoreBtn-' + section);
+    if (!wrapper || !btn) return;
+    const p = getSectionPagination(section);
+    wrapper.classList.toggle('hidden', p.page >= p.totalPages);
+    btn.disabled     = p.loadingMore;
+    btn.textContent  = p.loadingMore ? t('btn.loadingMore') : t('btn.loadMore');
+}
+
 // Generic debounce — used for text inputs (search / city) so we don't
 // re-fetch on every keystroke.
 function debounce(fn, delay) {
@@ -90,17 +111,60 @@ function refreshSectionMessageLanguage(section) {
 
 // Fetch a section from the backend API, update the cache, and re-render.
 // Errors are logged but do not crash the app; other sections keep working.
-async function refreshSectionFromApi(section) {
-    setSectionLoading(section);
+//
+// { append: true } loads the *next* page and concatenates it onto the
+// existing cache (used by the "Load more" button). The default (append:
+// false) always starts over from page 1 — used for the initial load,
+// filter/sort changes, Clear filters, and post-CRUD reloads — so pages
+// never accumulate stale state and cards are never duplicated.
+async function refreshSectionFromApi(section, { append = false } = {}) {
+    const pInfo = getSectionPagination(section);
+
+    if (append) {
+        if (pInfo.loadingMore) return; // guard against double-click
+        pInfo.loadingMore = true;
+        updateLoadMoreButton(section);
+    } else {
+        setSectionLoading(section);
+        pInfo.page = 1;
+    }
+
+    const requestedPage = append ? pInfo.page + 1 : 1;
+
     try {
-        apiListingsCache[section] = await window.PetFriendsListingsDataSource.apiGetListings(section, getSectionFilters(section));
-        clearSectionMessage(section);
+        const { items, pagination } = await window.PetFriendsListingsDataSource.apiGetListings(
+            section,
+            getSectionFilters(section),
+            { page: requestedPage, limit: LISTINGS_PAGE_SIZE, withMeta: true }
+        );
+
+        apiListingsCache[section] = append
+            ? [...(apiListingsCache[section] ?? []), ...items]
+            : items;
+
+        pInfo.page        = pagination.page ?? requestedPage;
+        pInfo.totalPages  = pagination.totalPages ?? 1;
+        pInfo.total       = pagination.total ?? apiListingsCache[section].length;
+        pInfo.loadingMore = false;
+
+        if (!append) clearSectionMessage(section);
         renderListings(section);
+        updateLoadMoreButton(section);
     } catch (err) {
         console.error(`[${section}] Failed to load from API:`, err.message);
-        setSectionError(section);
-        document.getElementById('listings-' + section)?.replaceChildren();
-        document.getElementById('empty-' + section)?.classList.add('hidden');
+        pInfo.loadingMore = false;
+
+        if (append) {
+            // Keep whatever is already displayed; just surface the error and
+            // let the user retry via the button.
+            showToast(t('error.listings'));
+            updateLoadMoreButton(section);
+        } else {
+            setSectionError(section);
+            document.getElementById('listings-' + section)?.replaceChildren();
+            document.getElementById('empty-' + section)?.classList.add('hidden');
+            document.getElementById('loadMoreWrapper-' + section)?.classList.add('hidden');
+        }
     }
     updateStats();
 }
@@ -276,6 +340,7 @@ const TRANSLATIONS = {
 
         'btn.edit':   'Edit',
         'btn.delete': 'Delete',
+        'btn.viewDetails': 'View details',
 
         'btn.save.listing': 'Save Listing',
         'btn.save.request': 'Save Request',
@@ -317,6 +382,8 @@ const TRANSLATIONS = {
         'error.listings':   'Could not load listings. Please make sure the server is running.',
         'error.stories':    'Could not load stories. Please try again later.',
         'btn.retry':        'Retry',
+        'btn.loadMore':     'Load more',
+        'btn.loadingMore':  'Loading more…',
 
         'search.found':   'Search by name, city, description…',
         'search.lost':    'Search by name, city, description…',
@@ -338,6 +405,17 @@ const TRANSLATIONS = {
         'card.contactEmail':'Contact Email',
         'card.contactPhone':'Contact Phone',
         'card.status':      'Status',
+        'card.scenario':     'Category',
+        'card.createdDate':  'Created',
+        'card.updatedDate':  'Updated',
+        'card.noDescription':'No description',
+
+        'modal.details.title':    'Listing details',
+        'modal.loading':          'Loading details…',
+        'modal.contact':          'Contact',
+        'btn.close':              'Close',
+        'error.listingDetails':   'Could not load listing details. Please try again later.',
+        'error.listingNotFound':  'Listing not found or no longer available.',
 
         'form.label.petName':      'Pet Name',
         'form.label.petNameTitle': 'Pet Name / Title',
@@ -448,6 +526,7 @@ const TRANSLATIONS = {
 
         'btn.edit':   'Изменить',
         'btn.delete': 'Удалить',
+        'btn.viewDetails': 'Подробнее',
 
         'btn.save.listing': 'Сохранить',
         'btn.save.request': 'Сохранить',
@@ -489,6 +568,8 @@ const TRANSLATIONS = {
         'error.listings':   'Не удалось загрузить объявления. Убедитесь, что сервер запущен.',
         'error.stories':    'Не удалось загрузить истории. Попробуйте позже.',
         'btn.retry':        'Повторить',
+        'btn.loadMore':     'Показать ещё',
+        'btn.loadingMore':  'Загрузка…',
 
         'search.found':   'Поиск по имени, городу или описанию…',
         'search.lost':    'Поиск по имени, городу или описанию…',
@@ -510,6 +591,17 @@ const TRANSLATIONS = {
         'card.contactEmail':'Контактный email',
         'card.contactPhone':'Контактный телефон',
         'card.status':      'Статус',
+        'card.scenario':     'Категория',
+        'card.createdDate':  'Создано',
+        'card.updatedDate':  'Обновлено',
+        'card.noDescription':'Без описания',
+
+        'modal.details.title':    'Детали объявления',
+        'modal.loading':          'Загрузка деталей…',
+        'modal.contact':          'Контакты',
+        'btn.close':              'Закрыть',
+        'error.listingDetails':   'Не удалось загрузить детали объявления. Попробуйте позже.',
+        'error.listingNotFound':  'Объявление не найдено или больше недоступно.',
 
         'form.label.petName':      'Имя питомца',
         'form.label.petNameTitle': 'Имя питомца / заголовок',
@@ -620,6 +712,7 @@ const TRANSLATIONS = {
 
         'btn.edit':   'עריכה',
         'btn.delete': 'מחיקה',
+        'btn.viewDetails': 'הצג פרטים',
 
         'btn.save.listing': 'שמור מודעה',
         'btn.save.request': 'שמור בקשה',
@@ -661,6 +754,8 @@ const TRANSLATIONS = {
         'error.listings':   'לא ניתן לטעון את המודעות. ודאו שהשרת פועל.',
         'error.stories':    'לא ניתן לטעון את הסיפורים. נסו שוב מאוחר יותר.',
         'btn.retry':        'נסה שוב',
+        'btn.loadMore':     'טען עוד',
+        'btn.loadingMore':  'טוען עוד…',
 
         'search.found':   'חיפוש לפי שם, עיר או תיאור…',
         'search.lost':    'חיפוש לפי שם, עיר או תיאור…',
@@ -682,6 +777,17 @@ const TRANSLATIONS = {
         'card.contactEmail':'אימייל ליצירת קשר',
         'card.contactPhone':'טלפון ליצירת קשר',
         'card.status':      'סטטוס',
+        'card.scenario':     'קטגוריה',
+        'card.createdDate':  'נוצר בתאריך',
+        'card.updatedDate':  'עודכן בתאריך',
+        'card.noDescription':'אין תיאור',
+
+        'modal.details.title':    'פרטי המודעה',
+        'modal.loading':          'טוען פרטים…',
+        'modal.contact':          'יצירת קשר',
+        'btn.close':              'סגירה',
+        'error.listingDetails':   'לא ניתן לטעון את פרטי המודעה. נסו שוב מאוחר יותר.',
+        'error.listingNotFound':  'המודעה לא נמצאה או שאינה זמינה יותר.',
 
         'form.label.petName':      'שם חיית המחמד',
         'form.label.petNameTitle': 'שם חיית המחמד / כותרת',
@@ -986,12 +1092,19 @@ function applyTranslations(lang) {
         if (tbl[key] !== undefined) el.placeholder = tbl[key];
     });
 
+    // aria-label attributes
+    document.querySelectorAll('[data-i18n-aria-label]').forEach(el => {
+        const key = el.dataset.i18nAriaLabel;
+        if (tbl[key] !== undefined) el.setAttribute('aria-label', tbl[key]);
+    });
+
     // Re-render dynamic cards so type/status/button labels update immediately
     if (document.getElementById('listings-found')) {
         rebuildFilterSelects();
         ['found', 'lost', 'forHome', 'adopt'].forEach(section => {
             renderListings(section);
             refreshSectionMessageLanguage(section);
+            updateLoadMoreButton(section);
             // If form is open, re-translate it without losing entered values
             const fw = document.getElementById('form-' + section);
             if (fw && !fw.classList.contains('hidden')) {
@@ -1021,6 +1134,17 @@ function fmtDate(str) {
     if (!str) return '';
     const d = new Date(str + 'T00:00:00');
     if (isNaN(d)) return str;
+    const lang   = document.documentElement.lang || DEFAULT_LANG;
+    const locale = lang === 'he' ? 'he-IL' : lang === 'ru' ? 'ru-RU' : 'en-US';
+    return d.toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+// Formats an epoch-ms timestamp (createdAt / updatedAt) the same way fmtDate
+// formats a YYYY-MM-DD string.
+function fmtTimestamp(ms) {
+    if (!ms) return '';
+    const d = new Date(ms);
+    if (isNaN(d)) return '';
     const lang   = document.documentElement.lang || DEFAULT_LANG;
     const locale = lang === 'he' ? 'he-IL' : lang === 'ru' ? 'ru-RU' : 'en-US';
     return d.toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric' });
@@ -1107,6 +1231,7 @@ function renderListings(section) {
                 <span class="badge badge-status-${esc(item.status?.toLowerCase())}">${esc(tStatus(item.status))}</span>
             </div>
             <div class="card-actions">
+                <button class="btn btn-secondary" data-action="details" data-id="${esc(item.id)}">${t('btn.viewDetails')}</button>
                 <button class="btn btn-edit"   data-action="edit"   data-id="${esc(item.id)}">${t('btn.edit')}</button>
                 <button class="btn btn-delete" data-action="delete" data-id="${esc(item.id)}">${t('btn.delete')}</button>
             </div>
@@ -1289,8 +1414,14 @@ function setupListingSection(section) {
     });
 
     grid?.addEventListener('click', async e => {
-        const editBtn   = e.target.closest('[data-action="edit"]');
-        const deleteBtn = e.target.closest('[data-action="delete"]');
+        const editBtn    = e.target.closest('[data-action="edit"]');
+        const deleteBtn  = e.target.closest('[data-action="delete"]');
+        const detailsBtn = e.target.closest('[data-action="details"]');
+
+        if (detailsBtn) {
+            openListingDetailsModal(section, detailsBtn.dataset.id);
+            return;
+        }
 
         if (deleteBtn) {
             const id = deleteBtn.dataset.id;
@@ -1375,6 +1506,109 @@ function setupListingSection(section) {
         if (sortEl)   sortEl.value   = 'newest';
         reloadNow();
     });
+
+    document.getElementById('loadMoreBtn-' + section)?.addEventListener('click', () => {
+        refreshSectionFromApi(section, { append: true });
+    });
+}
+
+// ===== LISTING DETAILS MODAL =====
+// Shared overlay (#listingDetailsOverlay) used by all four API-backed listing
+// sections. GET /api/listings/:id is fetched on open; a request token guards
+// against stale responses if the user opens a different listing (or closes
+// the modal) before the first fetch resolves.
+
+let detailsRequestId  = 0;
+let detailsCurrentKey = null; // `${section}:${id}` of the listing currently open/loading
+
+function detailsFieldRow(labelKey, valueHtml) {
+    return `<div class="card-field"><dt>${esc(t(labelKey))}</dt><dd>${valueHtml}</dd></div>`;
+}
+
+function renderListingDetailsBody(section, item) {
+    const localTitle       = getLocalizedField(item, 'title');
+    const localDesc        = getLocalizedField(item, 'description');
+    const photoSrc         = getPhotoSource(item);
+    const photoAlt         = esc(localTitle || t('photo.alt.generic'));
+    const contentLang      = item.contentLanguage ?? 'en';
+    const contentDirClass  = contentLang === 'he' ? 'user-content-rtl' : 'user-content-ltr';
+    const dateKey = section === 'found' ? 'card.dateFound'
+                  : section === 'lost'  ? 'card.dateLost'
+                  : 'card.datePosted';
+
+    const rows = [];
+    rows.push(detailsFieldRow('card.scenario', esc(t('nav.' + section))));
+    if (item.type)  rows.push(detailsFieldRow('card.petType', esc(tType(item.type))));
+    if (item.breed) rows.push(detailsFieldRow('card.breed', esc(item.breed)));
+    if (item.city)  rows.push(detailsFieldRow('card.city', `<span class="${contentDirClass}">${esc(item.city)}</span>`));
+    if (item.date)  rows.push(detailsFieldRow(dateKey, fmtDate(item.date)));
+    if (item.createdAt) rows.push(detailsFieldRow('card.createdDate', fmtTimestamp(item.createdAt)));
+    if (item.updatedAt) rows.push(detailsFieldRow('card.updatedDate', fmtTimestamp(item.updatedAt)));
+
+    const contactRows = [];
+    if (item.email) contactRows.push(detailsFieldRow('card.contactEmail', `<a class="ltr-value" href="mailto:${esc(item.email)}">${esc(item.email)}</a>`));
+    if (item.phone) contactRows.push(detailsFieldRow('card.contactPhone', `<span class="ltr-value"><a href="tel:${esc(item.phone)}">${esc(item.phone)}</a></span>`));
+
+    return `
+        <div class="details-image">
+            <img src="${esc(photoSrc)}" alt="${photoAlt}"
+                 onerror="if(!this.dataset.fb){this.dataset.fb='1';this.src='${PHOTO_PLACEHOLDER}'}">
+        </div>
+        <div class="card-header">
+            <div class="card-title"><span class="${contentDirClass}">${esc(localTitle)}</span></div>
+            <span class="badge badge-status-${esc(item.status?.toLowerCase())}">${esc(tStatus(item.status))}</span>
+        </div>
+        <dl class="details-grid card-fields">${rows.join('')}</dl>
+        <div class="details-meta">
+            <span class="card-field-label">${esc(t('card.description'))}</span>
+            <p class="${contentDirClass}">${esc(localDesc || t('card.noDescription'))}</p>
+        </div>
+        ${contactRows.length ? `
+        <div class="details-contact">
+            <h3>${esc(t('modal.contact'))}</h3>
+            <dl class="card-fields">${contactRows.join('')}</dl>
+        </div>` : ''}
+    `;
+}
+
+function openListingDetailsModal(section, id) {
+    const overlay = document.getElementById('listingDetailsOverlay');
+    const body    = document.getElementById('listingDetailsBody');
+    if (!overlay || !body) return;
+
+    const key = section + ':' + id;
+    if (detailsCurrentKey === key && !overlay.classList.contains('hidden')) return; // guard rapid duplicate clicks
+    detailsCurrentKey = key;
+
+    overlay.classList.remove('hidden');
+    document.body.classList.add('modal-open');
+    body.innerHTML = `<div class="details-loading">${esc(t('modal.loading'))}</div>`;
+
+    const myRequestId = ++detailsRequestId;
+
+    window.PetFriendsListingsDataSource.apiGetListingById(section, id)
+        .then(item => {
+            if (myRequestId !== detailsRequestId) return; // stale — modal moved on or closed
+            if (!item) {
+                body.innerHTML = `<div class="details-error">${esc(t('error.listingNotFound'))}</div>`;
+                return;
+            }
+            body.innerHTML = renderListingDetailsBody(section, item);
+        })
+        .catch(err => {
+            if (myRequestId !== detailsRequestId) return;
+            console.error(`[${section}] Failed to load listing details:`, err.message);
+            body.innerHTML = `<div class="details-error">${esc(t('error.listingDetails'))}</div>`;
+        });
+}
+
+function closeListingDetailsModal() {
+    const overlay = document.getElementById('listingDetailsOverlay');
+    if (!overlay || overlay.classList.contains('hidden')) return;
+    overlay.classList.add('hidden');
+    document.body.classList.remove('modal-open');
+    detailsCurrentKey = null;
+    detailsRequestId++; // invalidate any in-flight request
 }
 
 // ===== STORIES =====
@@ -1669,7 +1903,13 @@ function clearErrors(form) {
 function updateStats() {
     ['found', 'lost', 'forHome', 'adopt'].forEach(s => {
         const el = document.getElementById('stat-' + s);
-        if (el) el.textContent = load(s).length;
+        if (!el) return;
+        // API sections only load LISTINGS_PAGE_SIZE items at a time, so the
+        // cache length no longer reflects the true count — use the backend
+        // pagination total instead.
+        el.textContent = window.PetFriendsListingsDataSource.API_ENABLED_SECTIONS.has(s)
+            ? getSectionPagination(s).total
+            : load(s).length;
     });
     const storiesEl = document.getElementById('stat-stories');
     if (storiesEl) storiesEl.textContent = storiesCache.length;
@@ -2001,6 +2241,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         const section = btn.dataset.retrySection;
         if (section === 'stories') refreshStoriesFromApi();
         else refreshSectionFromApi(section);
+    });
+
+    // Listing details modal — close via X, overlay background click, or Escape
+    document.getElementById('listingDetailsClose')?.addEventListener('click', closeListingDetailsModal);
+    document.getElementById('listingDetailsOverlay')?.addEventListener('click', e => {
+        if (e.target.id === 'listingDetailsOverlay') closeListingDetailsModal();
+    });
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') closeListingDetailsModal();
     });
 
     // Set up listing sections (event listeners; initial render happens inside initLanguage)
