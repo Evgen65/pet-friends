@@ -18,7 +18,7 @@ async function resolveTokenUser(req) {
   const token  = header?.startsWith('Bearer ') ? header.slice(7).trim() : null;
 
   if (!token) {
-    return { ok: false, status: 401, message: 'Authentication required' };
+    return { ok: false, status: 401, message: 'Unauthorized' };
   }
 
   let payload;
@@ -29,7 +29,7 @@ async function resolveTokenUser(req) {
       console.error('resolveTokenUser config error:', err.message);
       return { ok: false, status: 500, message: 'Server configuration error' };
     }
-    return { ok: false, status: 401, message: 'Invalid or expired token' };
+    return { ok: false, status: 401, message: 'Unauthorized' };
   }
 
   const [rows] = await pool.query(
@@ -41,7 +41,7 @@ async function resolveTokenUser(req) {
   // Treat "no longer exists" and "blocked" the same as "not authenticated" —
   // this endpoint should not reveal account state to a caller with a stale token.
   if (!user || user.status !== 'active') {
-    return { ok: false, status: 401, message: 'Invalid or expired token' };
+    return { ok: false, status: 401, message: 'Unauthorized' };
   }
 
   return { ok: true, user };

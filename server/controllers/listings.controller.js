@@ -175,6 +175,36 @@ async function fetchById(id) {
   return rows[0] ?? null;
 }
 
+// Protects PUT/DELETE: only the listing's owner or an admin may proceed.
+// Must run after authenticateToken (req.user is required). Checked before
+// updateListing/deleteListing re-fetch the row for their own logic — the
+// extra query here is intentional so 404 (unknown/deleted id) is reported
+// before 403 (wrong user), instead of leaking existence only to some roles.
+async function requireListingOwnerOrAdmin(req, res, next) {
+  const id = validateListingId(req.params.id);
+  if (!id) return res.status(400).json({ status: 'error', message: 'Invalid listing id' });
+
+  try {
+    const [rows] = await pool.query(
+      'SELECT id, created_by_user_id, deleted_at FROM listings WHERE id = ? AND deleted_at IS NULL',
+      [id]
+    );
+    const listing = rows[0];
+    if (!listing) {
+      return res.status(404).json({ status: 'error', message: 'Listing not found' });
+    }
+
+    if (req.user.role === 'admin' || listing.created_by_user_id === req.user.id) {
+      return next();
+    }
+
+    res.status(403).json({ status: 'error', message: 'Forbidden' });
+  } catch (err) {
+    console.error('requireListingOwnerOrAdmin error:', err.message);
+    res.status(500).json({ status: 'error', message: 'Failed to authorize request' });
+  }
+}
+
 // ── Route handlers ───────────────────────────────────────────────────────────
 
 async function getListings(req, res) {
@@ -311,7 +341,7 @@ async function updateListing(req, res) {
     );
 
     const updated = await fetchById(id);
-    res.json(toApiShape(updated));
+    res.json(toApiShape(updated, req.user?.id));
   } catch (err) {
     console.error('updateListing error:', err.message);
     res.status(500).json({ status: 'error', message: 'Failed to update listing' });
@@ -338,4 +368,11 @@ async function deleteListing(req, res) {
   }
 }
 
-module.exports = { getListings, getListing, createListing, updateListing, deleteListing };
+module.exports = {
+  getListings,
+  getListing,
+  createListing,
+  updateListing,
+  deleteListing,
+  requireListingOwnerOrAdmin,
+};

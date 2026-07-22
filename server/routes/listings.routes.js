@@ -6,13 +6,14 @@ const {
   createListing,
   updateListing,
   deleteListing,
+  requireListingOwnerOrAdmin,
 } = require('../controllers/listings.controller');
-const { optionalAuthenticateToken } = require('../middleware/auth.middleware');
+const { optionalAuthenticateToken, authenticateToken } = require('../middleware/auth.middleware');
 
 router.get('/',       optionalAuthenticateToken, getListings);
 router.get('/:id',    optionalAuthenticateToken, getListing);
 router.post('/',      optionalAuthenticateToken, createListing);
-router.put('/:id',    updateListing);
-router.delete('/:id', deleteListing);
+router.put('/:id',    authenticateToken, requireListingOwnerOrAdmin, updateListing);
+router.delete('/:id', authenticateToken, requireListingOwnerOrAdmin, deleteListing);
 
 module.exports = router;
