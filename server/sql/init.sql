@@ -22,9 +22,11 @@ CREATE TABLE IF NOT EXISTS listings (
   status           VARCHAR(50) NOT NULL DEFAULT 'open',
   content_language ENUM('en', 'ru', 'he') NOT NULL DEFAULT 'en',
   photo_url        VARCHAR(500) NULL,
+  created_by_user_id INT NULL,
   created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  deleted_at       TIMESTAMP NULL DEFAULT NULL
+  deleted_at       TIMESTAMP NULL DEFAULT NULL,
+  INDEX idx_listings_created_by_user_id (created_by_user_id)
 );
 
 CREATE TABLE IF NOT EXISTS pet_stories (
@@ -53,3 +55,8 @@ CREATE TABLE IF NOT EXISTS users (
   created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
+
+ALTER TABLE listings
+  ADD CONSTRAINT fk_listings_created_by_user
+    FOREIGN KEY (created_by_user_id) REFERENCES users(id)
+    ON DELETE SET NULL;

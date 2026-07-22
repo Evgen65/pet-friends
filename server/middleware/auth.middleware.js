@@ -9,15 +9,16 @@ function getJwtSecret() {
   return secret;
 }
 
-// Verifies the Bearer token, loads the user from the database, and attaches
-// a password-hash-free user object to req.user. Used by GET /api/auth/me now,
-// and intended for protecting listing/story routes in a future milestone.
-async function authenticateToken(req, res, next) {
+// Verifies a Bearer token and loads the password-hash-free user from the
+// database. Returns { ok: true, user } on success, or { ok: false, status,
+// message } on any failure (missing/invalid/expired token, blocked/missing
+// user, config error) so callers can decide how strict to be about the result.
+async function resolveTokenUser(req) {
   const header = req.headers.authorization;
   const token  = header?.startsWith('Bearer ') ? header.slice(7).trim() : null;
 
   if (!token) {
-    return res.status(401).json({ status: 'error', message: 'Authentication required' });
+    return { ok: false, status: 401, message: 'Authentication required' };
   }
 
   let payload;
@@ -25,26 +26,35 @@ async function authenticateToken(req, res, next) {
     payload = jwt.verify(token, getJwtSecret());
   } catch (err) {
     if (err.message === 'JWT_SECRET is not configured') {
-      console.error('authenticateToken config error:', err.message);
-      return res.status(500).json({ status: 'error', message: 'Server configuration error' });
+      console.error('resolveTokenUser config error:', err.message);
+      return { ok: false, status: 500, message: 'Server configuration error' };
     }
-    return res.status(401).json({ status: 'error', message: 'Invalid or expired token' });
+    return { ok: false, status: 401, message: 'Invalid or expired token' };
   }
 
+  const [rows] = await pool.query(
+    'SELECT id, name, email, role, status FROM users WHERE id = ?',
+    [payload.userId]
+  );
+  const user = rows[0];
+
+  // Treat "no longer exists" and "blocked" the same as "not authenticated" —
+  // this endpoint should not reveal account state to a caller with a stale token.
+  if (!user || user.status !== 'active') {
+    return { ok: false, status: 401, message: 'Invalid or expired token' };
+  }
+
+  return { ok: true, user };
+}
+
+// Used by GET /api/auth/me and other routes that require a signed-in user.
+async function authenticateToken(req, res, next) {
   try {
-    const [rows] = await pool.query(
-      'SELECT id, name, email, role, status FROM users WHERE id = ?',
-      [payload.userId]
-    );
-    const user = rows[0];
-
-    // Treat "no longer exists" and "blocked" the same as "not authenticated" —
-    // this endpoint should not reveal account state to a caller with a stale token.
-    if (!user || user.status !== 'active') {
-      return res.status(401).json({ status: 'error', message: 'Invalid or expired token' });
+    const result = await resolveTokenUser(req);
+    if (!result.ok) {
+      return res.status(result.status).json({ status: 'error', message: result.message });
     }
-
-    req.user = user;
+    req.user = result.user;
     next();
   } catch (err) {
     console.error('authenticateToken error:', err.message);
@@ -52,4 +62,27 @@ async function authenticateToken(req, res, next) {
   }
 }
 
-module.exports = { authenticateToken, getJwtSecret };
+// Used by routes that work for both guests and signed-in users (e.g. listing
+// creation/browsing). A missing Authorization header leaves req.user
+// undefined and continues as a guest. A present-but-invalid/expired token is
+// still rejected with 401 — silently ignoring a bad token would hide a
+// caller's broken auth state instead of surfacing it.
+async function optionalAuthenticateToken(req, res, next) {
+  if (!req.headers.authorization) {
+    return next();
+  }
+
+  try {
+    const result = await resolveTokenUser(req);
+    if (!result.ok) {
+      return res.status(result.status).json({ status: 'error', message: result.message });
+    }
+    req.user = result.user;
+    next();
+  } catch (err) {
+    console.error('optionalAuthenticateToken error:', err.message);
+    res.status(500).json({ status: 'error', message: 'Failed to authenticate request' });
+  }
+}
+
+module.exports = { authenticateToken, optionalAuthenticateToken, getJwtSecret };

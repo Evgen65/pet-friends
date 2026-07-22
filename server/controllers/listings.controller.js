@@ -15,21 +15,24 @@ const SEARCH_COLUMNS = [
 ];
 
 const SORT_CLAUSES = {
-  newest:    'created_at DESC',
-  oldest:    'created_at ASC',
-  city_asc:  'city ASC, created_at DESC',
-  city_desc: 'city DESC, created_at DESC',
+  newest:    'l.created_at DESC',
+  oldest:    'l.created_at ASC',
+  city_asc:  'l.city ASC, l.created_at DESC',
+  city_desc: 'l.city DESC, l.created_at DESC',
 };
 
 // deleted_at IS NULL is the base filter — soft-deleted rows are never returned.
+// LEFT JOIN users only for the owner's display name — never select u.email.
 const BASE_SELECT = `
   SELECT
-    id, scenario, pet_type, pet_name_or_title, breed, city,
-    DATE_FORMAT(event_date, '%Y-%m-%d') AS event_date, description,
-    contact_email, contact_phone, status, content_language,
-    photo_url, created_at, updated_at
-  FROM listings
-  WHERE deleted_at IS NULL
+    l.id, l.scenario, l.pet_type, l.pet_name_or_title, l.breed, l.city,
+    DATE_FORMAT(l.event_date, '%Y-%m-%d') AS event_date, l.description,
+    l.contact_email, l.contact_phone, l.status, l.content_language,
+    l.photo_url, l.created_by_user_id, u.name AS owner_name,
+    l.created_at, l.updated_at
+  FROM listings l
+  LEFT JOIN users u ON u.id = l.created_by_user_id
+  WHERE l.deleted_at IS NULL
 `;
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -141,7 +144,9 @@ function validateListingQuery(query) {
   };
 }
 
-function toApiShape(row) {
+// currentUserId is the requester's id (undefined for guests) — used only to
+// compute isOwner. Never exposes the owner's email.
+function toApiShape(row, currentUserId) {
   return {
     id:              row.id,
     scenario:        row.scenario,
@@ -156,6 +161,9 @@ function toApiShape(row) {
     status:          row.status,
     contentLanguage: row.content_language,
     photoUrl:        row.photo_url,
+    createdByUserId: row.created_by_user_id ?? null,
+    ownerName:       row.owner_name ?? null,
+    isOwner:         currentUserId != null && row.created_by_user_id === currentUserId,
     createdAt:       row.created_at,
     updatedAt:       row.updated_at,
   };
@@ -163,7 +171,7 @@ function toApiShape(row) {
 
 // Internal: fetch one active row by id.  Returns null when not found or deleted.
 async function fetchById(id) {
-  const [rows] = await pool.query(BASE_SELECT + ' AND id = ?', [id]);
+  const [rows] = await pool.query(BASE_SELECT + ' AND l.id = ?', [id]);
   return rows[0] ?? null;
 }
 
@@ -180,13 +188,13 @@ async function getListings(req, res) {
   const conditions = [];
   const params     = [];
 
-  if (scenario) { conditions.push('scenario = ?');       params.push(scenario); }
-  if (petType)  { conditions.push('pet_type = ?');        params.push(petType); }
-  if (city)     { conditions.push('LOWER(city) LIKE ?');  params.push(`%${city.toLowerCase()}%`); }
-  if (status)   { conditions.push('LOWER(status) = ?');   params.push(status.toLowerCase()); }
+  if (scenario) { conditions.push('l.scenario = ?');       params.push(scenario); }
+  if (petType)  { conditions.push('l.pet_type = ?');        params.push(petType); }
+  if (city)     { conditions.push('LOWER(l.city) LIKE ?');  params.push(`%${city.toLowerCase()}%`); }
+  if (status)   { conditions.push('LOWER(l.status) = ?');   params.push(status.toLowerCase()); }
   if (q) {
     const like = `%${q.toLowerCase()}%`;
-    conditions.push('(' + SEARCH_COLUMNS.map(c => `LOWER(${c}) LIKE ?`).join(' OR ') + ')');
+    conditions.push('(' + SEARCH_COLUMNS.map(c => `LOWER(l.${c}) LIKE ?`).join(' OR ') + ')');
     SEARCH_COLUMNS.forEach(() => params.push(like));
   }
 
@@ -197,7 +205,7 @@ async function getListings(req, res) {
     let total = null;
     if (withMeta) {
       const [countRows] = await pool.query(
-        `SELECT COUNT(*) AS total FROM listings WHERE deleted_at IS NULL${whereExtra}`,
+        `SELECT COUNT(*) AS total FROM listings l WHERE l.deleted_at IS NULL${whereExtra}`,
         params
       );
       total = countRows[0].total;
@@ -207,12 +215,13 @@ async function getListings(req, res) {
     const sql    = `${BASE_SELECT}${whereExtra} ORDER BY ${orderBy} LIMIT ? OFFSET ?`;
     const [rows] = await pool.query(sql, [...params, limit, offset]);
 
+    const currentUserId = req.user?.id;
     if (!withMeta) {
-      return res.json(rows.map(toApiShape));
+      return res.json(rows.map(row => toApiShape(row, currentUserId)));
     }
 
     res.json({
-      items: rows.map(toApiShape),
+      items: rows.map(row => toApiShape(row, currentUserId)),
       pagination: { page, limit, total, totalPages: Math.max(1, Math.ceil(total / limit)) },
     });
   } catch (err) {
@@ -228,7 +237,7 @@ async function getListing(req, res) {
   try {
     const row = await fetchById(id);
     if (!row) return res.status(404).json({ status: 'error', message: 'Listing not found' });
-    res.json(toApiShape(row));
+    res.json(toApiShape(row, req.user?.id));
   } catch (err) {
     console.error('getListing error:', err.message);
     res.status(500).json({ status: 'error', message: 'Failed to fetch listing' });
@@ -246,17 +255,19 @@ async function createListing(req, res) {
     const [result] = await pool.query(
       `INSERT INTO listings
          (scenario, pet_type, pet_name_or_title, breed, city, event_date,
-          description, contact_email, contact_phone, status, content_language, photo_url)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          description, contact_email, contact_phone, status, content_language, photo_url,
+          created_by_user_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         values.scenario, values.petType, values.petNameOrTitle, values.breed,
         values.city, values.eventDate, values.description, values.contactEmail,
         values.contactPhone, values.status ?? 'open', values.contentLanguage, values.photoUrl,
+        req.user?.id ?? null,
       ]
     );
 
     const created = await fetchById(result.insertId);
-    res.status(201).json(toApiShape(created));
+    res.status(201).json(toApiShape(created, req.user?.id));
   } catch (err) {
     console.error('createListing error:', err.message);
     res.status(500).json({ status: 'error', message: 'Failed to create listing' });

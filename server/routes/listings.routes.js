@@ -7,10 +7,11 @@ const {
   updateListing,
   deleteListing,
 } = require('../controllers/listings.controller');
+const { optionalAuthenticateToken } = require('../middleware/auth.middleware');
 
-router.get('/',       getListings);
-router.get('/:id',    getListing);
-router.post('/',      createListing);
+router.get('/',       optionalAuthenticateToken, getListings);
+router.get('/:id',    optionalAuthenticateToken, getListing);
+router.post('/',      optionalAuthenticateToken, createListing);
 router.put('/:id',    updateListing);
 router.delete('/:id', deleteListing);
 
