@@ -217,16 +217,23 @@ window.PetFriendsListingsDataSource = (function () {
 
     // apiPayload is a pre-built backend-shaped object (built by app.js using
     // buildFoundApiPayload).  It is sent as-is — no toApiPayload conversion here.
+    // Attaches the response status to the thrown Error so callers (app.js)
+    // can tell 401/403/404 apart and show a specific, friendly message
+    // instead of a generic failure toast.
+    async function _throwForStatus(res, fallbackMessage) {
+        const body = await res.json().catch(() => ({}));
+        const err  = new Error(body.message || fallbackMessage);
+        err.status = res.status;
+        throw err;
+    }
+
     async function apiCreateListing(_sectionKey, apiPayload) {
         const res = await fetch(API_BASE_URL, {
             method:  'POST',
             headers: { 'Content-Type': 'application/json', ..._authHeaders() },
             body:    JSON.stringify(apiPayload),
         });
-        if (!res.ok) {
-            const body = await res.json().catch(() => ({}));
-            throw new Error(body.message || `POST listing failed (${res.status})`);
-        }
+        if (!res.ok) await _throwForStatus(res, `POST listing failed (${res.status})`);
         return fromApiRecord(await res.json());
     }
 
@@ -236,10 +243,7 @@ window.PetFriendsListingsDataSource = (function () {
             headers: { 'Content-Type': 'application/json', ..._authHeaders() },
             body:    JSON.stringify(apiPayload),
         });
-        if (!res.ok) {
-            const body = await res.json().catch(() => ({}));
-            throw new Error(body.message || `PUT listing failed (${res.status})`);
-        }
+        if (!res.ok) await _throwForStatus(res, `PUT listing failed (${res.status})`);
         return fromApiRecord(await res.json());
     }
 
@@ -248,8 +252,7 @@ window.PetFriendsListingsDataSource = (function () {
             method:  'DELETE',
             headers: _authHeaders(),
         });
-        if (res.status === 404) return false;
-        if (!res.ok) throw new Error(`DELETE listing failed (${res.status})`);
+        if (!res.ok) await _throwForStatus(res, `DELETE listing failed (${res.status})`);
         return true;
     }
 

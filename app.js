@@ -448,6 +448,9 @@ const TRANSLATIONS = {
         'photo.alt.generic': 'Pet photo',
         'error.storage':     'The image could not be saved because browser storage is full. Try a smaller image or remove an existing photo.',
         'error.save':        'Could not save. Please try again.',
+        'error.listing.unauthorized': 'Please sign in to edit or delete listings.',
+        'error.listing.forbidden':    'You can edit or delete only your own listings.',
+        'error.listing.notFound':     'Listing not found or already removed.',
 
         'auth.signIn':          'Sign in',
         'auth.signUp':          'Sign up',
@@ -655,6 +658,9 @@ const TRANSLATIONS = {
         'photo.alt.generic': 'Фото питомца',
         'error.storage':     'Не удалось сохранить изображение: хранилище браузера заполнено. Выберите изображение меньшего размера или удалите существующую фотографию.',
         'error.save':        'Не удалось сохранить. Пожалуйста, попробуйте ещё раз.',
+        'error.listing.unauthorized': 'Войдите в аккаунт, чтобы редактировать или удалять объявления.',
+        'error.listing.forbidden':    'Вы можете редактировать или удалять только свои объявления.',
+        'error.listing.notFound':     'Объявление не найдено или уже удалено.',
 
         'auth.signIn':          'Войти',
         'auth.signUp':          'Регистрация',
@@ -862,6 +868,9 @@ const TRANSLATIONS = {
         'photo.alt.generic': 'תמונת חיית מחמד',
         'error.storage':     'לא ניתן לשמור את התמונה כי אחסון הדפדפן מלא. נסו תמונה קטנה יותר או הסירו תמונה קיימת.',
         'error.save':        'לא ניתן לשמור. אנא נסו שוב.',
+        'error.listing.unauthorized': 'יש להתחבר כדי לערוך או למחוק מודעות.',
+        'error.listing.forbidden':    'ניתן לערוך או למחוק רק את המודעות שלך.',
+        'error.listing.notFound':     'המודעה לא נמצאה או שכבר נמחקה.',
 
         'auth.signIn':          'התחברות',
         'auth.signUp':          'הרשמה',
@@ -1250,6 +1259,28 @@ function showSection(name) {
 
 const LISTING_FIELDS = ['type', 'title', 'city', 'date', 'description', 'email', 'phone', 'status', 'contentLanguage'];
 
+// Frontend-only UX gate for showing Edit/Delete — the backend (PUT/DELETE
+// requireListingOwnerOrAdmin) is the real authorization boundary; this only
+// decides whether to render controls a request would actually be allowed to use.
+function canManageListing(listing) {
+    if (!currentUser) return false;
+    if (currentUser.role === 'admin') return true;
+    return listing.isOwner === true;
+}
+
+// Maps a thrown apiUpdateListing/apiDeleteListing error (see listingsDataSource
+// apiUpdateListing/apiDeleteListing — they attach err.status) to a friendly,
+// translated message. Edit/Delete controls are hidden for anyone who wouldn't
+// be allowed to use them, but the backend is the real authority — a 401/403/404
+// can still happen (stale UI, expired token, listing deleted elsewhere) and
+// must be shown gracefully rather than the generic save-failed message.
+function mapListingActionError(err) {
+    if (err.status === 401) return t('error.listing.unauthorized');
+    if (err.status === 403) return t('error.listing.forbidden');
+    if (err.status === 404) return t('error.listing.notFound');
+    return t('error.save');
+}
+
 // Filtering/search/sort for API-enabled sections happens server-side (see
 // refreshSectionFromApi + sectionFilters) — `data` here is already the
 // filtered result set, so this just renders it.
@@ -1303,8 +1334,10 @@ function renderListings(section) {
             </div>
             <div class="card-actions">
                 <button class="btn btn-secondary" data-action="details" data-id="${esc(item.id)}">${t('btn.viewDetails')}</button>
+                ${canManageListing(item) ? `
                 <button class="btn btn-edit"   data-action="edit"   data-id="${esc(item.id)}">${t('btn.edit')}</button>
                 <button class="btn btn-delete" data-action="delete" data-id="${esc(item.id)}">${t('btn.delete')}</button>
+                ` : ''}
             </div>
         </div>
         `;
@@ -1446,7 +1479,7 @@ function setupListingSection(section) {
                 await refreshSectionFromApi(section);
             } catch (err) {
                 console.error(`[${section}] Save failed:`, err.message);
-                showToast(t('error.save'));
+                showToast(mapListingActionError(err));
             }
             return;
         }
@@ -1504,7 +1537,7 @@ function setupListingSection(section) {
                     showToast(t('toast.listing.deleted'));
                 } catch (err) {
                     console.error(`[${section}] Delete failed:`, err.message);
-                    showToast(t('error.save'));
+                    showToast(mapListingActionError(err));
                 }
             } else {
                 const updated = load(section).filter(d => d.id !== id);
