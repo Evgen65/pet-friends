@@ -20,6 +20,17 @@ window.PetFriendsListingsDataSource = (function () {
     const API_ORIGIN   = 'http://localhost:3000';
     const API_BASE_URL = API_ORIGIN + '/api/listings';
 
+    // Must stay in sync with AUTH_TOKEN_KEY in app.js.
+    const AUTH_TOKEN_KEY = 'pf_auth_token';
+
+    // Attaches the signed-in user's token when one exists, so the backend can
+    // resolve req.user and return accurate isOwner/createdByUserId. Guests
+    // (no token) get an empty headers object and requests still work as before.
+    function _authHeaders() {
+        const token = localStorage.getItem(AUTH_TOKEN_KEY);
+        return token ? { Authorization: `Bearer ${token}` } : {};
+    }
+
     // ── localStorage key map ─────────────────────────────────────────────────
     // Must stay in sync with KEYS in app.js (listing sections only).
 
@@ -114,6 +125,9 @@ window.PetFriendsListingsDataSource = (function () {
                           ? { source: 'asset', url: API_ORIGIN + relPhotoUrl }
                           : null,
             photoUrl: relPhotoUrl,  // relative path for API payloads
+            createdByUserId: rec.createdByUserId ?? null,
+            isOwner:         rec.isOwner === true,
+            ownerName:       rec.ownerName ?? null,
             createdAt: rec.createdAt
                            ? new Date(rec.createdAt).getTime()
                            : Date.now(),
@@ -178,7 +192,7 @@ window.PetFriendsListingsDataSource = (function () {
         if (limit)    params.set('limit', limit);
         if (withMeta) params.set('withMeta', 'true');
 
-        const res = await fetch(`${API_BASE_URL}?${params.toString()}`);
+        const res = await fetch(`${API_BASE_URL}?${params.toString()}`, { headers: _authHeaders() });
         if (!res.ok) throw new Error(`GET listings failed (${res.status})`);
         const json = await res.json();
 
@@ -195,7 +209,7 @@ window.PetFriendsListingsDataSource = (function () {
     }
 
     async function apiGetListingById(sectionKey, id) {
-        const res = await fetch(`${API_BASE_URL}/${encodeURIComponent(id)}`);
+        const res = await fetch(`${API_BASE_URL}/${encodeURIComponent(id)}`, { headers: _authHeaders() });
         if (res.status === 404) return null;
         if (!res.ok) throw new Error(`GET listing failed (${res.status})`);
         return fromApiRecord(await res.json());
@@ -206,7 +220,7 @@ window.PetFriendsListingsDataSource = (function () {
     async function apiCreateListing(_sectionKey, apiPayload) {
         const res = await fetch(API_BASE_URL, {
             method:  'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ..._authHeaders() },
             body:    JSON.stringify(apiPayload),
         });
         if (!res.ok) {
@@ -219,7 +233,7 @@ window.PetFriendsListingsDataSource = (function () {
     async function apiUpdateListing(_sectionKey, id, apiPayload) {
         const res = await fetch(`${API_BASE_URL}/${encodeURIComponent(id)}`, {
             method:  'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ..._authHeaders() },
             body:    JSON.stringify(apiPayload),
         });
         if (!res.ok) {
@@ -231,7 +245,8 @@ window.PetFriendsListingsDataSource = (function () {
 
     async function apiDeleteListing(_sectionKey, id) {
         const res = await fetch(`${API_BASE_URL}/${encodeURIComponent(id)}`, {
-            method: 'DELETE',
+            method:  'DELETE',
+            headers: _authHeaders(),
         });
         if (res.status === 404) return false;
         if (!res.ok) throw new Error(`DELETE listing failed (${res.status})`);

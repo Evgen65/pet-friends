@@ -416,6 +416,7 @@ const TRANSLATIONS = {
         'card.createdDate':  'Created',
         'card.updatedDate':  'Updated',
         'card.noDescription':'No description',
+        'badge.myListing':   'My listing',
 
         'modal.details.title':    'Listing details',
         'modal.loading':          'Loading details…',
@@ -622,6 +623,7 @@ const TRANSLATIONS = {
         'card.createdDate':  'Создано',
         'card.updatedDate':  'Обновлено',
         'card.noDescription':'Без описания',
+        'badge.myListing':   'Моё объявление',
 
         'modal.details.title':    'Детали объявления',
         'modal.loading':          'Загрузка деталей…',
@@ -828,6 +830,7 @@ const TRANSLATIONS = {
         'card.createdDate':  'נוצר בתאריך',
         'card.updatedDate':  'עודכן בתאריך',
         'card.noDescription':'אין תיאור',
+        'badge.myListing':   'המודעה שלי',
 
         'modal.details.title':    'פרטי המודעה',
         'modal.loading':          'טוען פרטים…',
@@ -1296,6 +1299,7 @@ function renderListings(section) {
             <div class="card-status">
                 <span class="card-field-label">${esc(t('card.status'))}</span>
                 <span class="badge badge-status-${esc(item.status?.toLowerCase())}">${esc(tStatus(item.status))}</span>
+                ${item.isOwner === true ? `<span class="badge owner-badge">${esc(t('badge.myListing'))}</span>` : ''}
             </div>
             <div class="card-actions">
                 <button class="btn btn-secondary" data-action="details" data-id="${esc(item.id)}">${t('btn.viewDetails')}</button>
@@ -1623,7 +1627,10 @@ function renderListingDetailsBody(section, item) {
         </div>
         <div class="card-header">
             <div class="card-title"><span class="${contentDirClass}">${esc(localTitle)}</span></div>
-            <span class="badge badge-status-${esc(item.status?.toLowerCase())}">${esc(tStatus(item.status))}</span>
+            <div class="card-header-badges">
+                ${item.isOwner === true ? `<span class="badge owner-badge">${esc(t('badge.myListing'))}</span>` : ''}
+                <span class="badge badge-status-${esc(item.status?.toLowerCase())}">${esc(tStatus(item.status))}</span>
+            </div>
         </div>
         <dl class="details-grid card-fields">${rows.join('')}</dl>
         <div class="details-meta">
@@ -1684,11 +1691,19 @@ function getAuthToken() {
     return localStorage.getItem(AUTH_TOKEN_KEY);
 }
 
+// Re-fetches every API-backed listing section so "My listing" badges
+// (isOwner) reflect the just-changed auth state. Cheap no-op-ish GETs —
+// safe to call on every sign-in/sign-out.
+function refreshAllListingSections() {
+    window.PetFriendsListingsDataSource.API_ENABLED_SECTIONS.forEach(s => refreshSectionFromApi(s));
+}
+
 function persistAuthSession(token, user) {
     localStorage.setItem(AUTH_TOKEN_KEY, token);
     localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
     currentUser = user;
     renderAuthUI();
+    refreshAllListingSections();
 }
 
 function clearAuthSession() {
@@ -1696,6 +1711,7 @@ function clearAuthSession() {
     localStorage.removeItem(AUTH_USER_KEY);
     currentUser = null;
     renderAuthUI();
+    refreshAllListingSections();
 }
 
 function renderAuthUI() {

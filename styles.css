@@ -377,6 +377,16 @@ main {
 .badge-status-adopted    { background: var(--forHome-light); color: var(--forHome); }
 .badge-status-matched    { background: var(--adopt-light); color: var(--adopt); }
 .badge-lang              { background: var(--bg); color: var(--text-2); border: 1px solid var(--border); font-weight: 500; }
+.owner-badge             { background: var(--primary-light); color: var(--primary); border: 1px solid var(--primary); }
+
+.card-header-badges {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.4rem;
+    flex-shrink: 0;
+}
 
 .user-content-ltr { direction: ltr; text-align: left; unicode-bidi: isolate; }
 .user-content-rtl { direction: rtl; text-align: right; unicode-bidi: isolate; }
@@ -447,6 +457,7 @@ main {
 .card-status {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 0.5rem;
     font-size: 0.82rem;
 }
