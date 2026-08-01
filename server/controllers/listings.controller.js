@@ -375,4 +375,5 @@ module.exports = {
   updateListing,
   deleteListing,
   requireListingOwnerOrAdmin,
+  toApiShape,
 };

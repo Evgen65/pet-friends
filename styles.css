@@ -965,6 +965,98 @@ footer {
 .lang-btn:hover  { background: var(--bg); color: var(--text); }
 .lang-btn.active { background: var(--primary-light); color: var(--primary); border-color: var(--primary); font-weight: 600; }
 
+/* ===== ADMIN CLEANUP ===== */
+.admin-cleanup-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.admin-cleanup-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    align-items: center;
+}
+
+.admin-cleanup-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.9rem;
+    color: var(--text-2);
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.admin-cleanup-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+.admin-cleanup-selected-count {
+    font-size: 0.85rem;
+    color: var(--text-2);
+    font-weight: 600;
+}
+
+.admin-cleanup-table {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.admin-cleanup-card {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.6rem 0.9rem;
+}
+
+.admin-cleanup-select { flex-shrink: 0; display: flex; }
+
+.admin-cleanup-photo {
+    width: 56px;
+    height: 56px;
+    object-fit: cover;
+    border-radius: calc(var(--radius) - 6px);
+    flex-shrink: 0;
+    background: var(--bg);
+}
+
+.admin-cleanup-info { flex: 1; min-width: 0; }
+
+.admin-cleanup-title {
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.admin-cleanup-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-top: 0.25rem;
+    font-size: 0.8rem;
+    color: var(--text-2);
+}
+
+@media (max-width: 560px) {
+    .admin-cleanup-card { flex-wrap: wrap; }
+    .admin-cleanup-actions { flex-direction: column; align-items: stretch; }
+}
+
 /* ===== RTL SUPPORT (Hebrew) ===== */
 [dir="rtl"] .listing-form {
     border-left: none;
@@ -995,3 +1087,7 @@ footer {
 
 /* RTL-aware form actions row */
 [dir="rtl"] .form-actions { flex-direction: row-reverse; }
+
+/* RTL-aware admin cleanup layout */
+[dir="rtl"] .admin-cleanup-card,
+[dir="rtl"] .admin-cleanup-actions { flex-direction: row-reverse; }

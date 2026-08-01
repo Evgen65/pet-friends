@@ -19,19 +19,20 @@
                 <a href="#" class="nav-link" data-section="adopt"   data-i18n="nav.adopt">I Want to Adopt</a>
                 <a href="#" class="nav-link" data-section="stories" data-i18n="nav.stories">Pet Stories</a>
                 <a href="#" class="nav-link" data-section="contact" data-i18n="nav.contact">Contact</a>
+                <a href="#" class="nav-link hidden" id="navAdminCleanup" data-section="adminCleanup" data-i18n="nav.adminCleanup" data-testid="nav-admin-cleanup">Admin Cleanup</a>
             </nav>
             <div class="auth-actions" id="authActionsGuest">
-                <button type="button" class="btn btn-secondary auth-button" id="openSignInBtn" data-i18n="auth.signIn">Sign in</button>
-                <button type="button" class="btn btn-primary auth-button" id="openSignUpBtn" data-i18n="auth.signUp">Sign up</button>
+                <button type="button" class="btn btn-secondary auth-button" id="openSignInBtn" data-i18n="auth.signIn" data-testid="auth-signin-button">Sign in</button>
+                <button type="button" class="btn btn-primary auth-button" id="openSignUpBtn" data-i18n="auth.signUp" data-testid="auth-signup-button">Sign up</button>
             </div>
             <div class="auth-user hidden" id="authActionsUser">
                 <span class="auth-user-name" id="authUserName"></span>
                 <button type="button" class="btn btn-secondary auth-button" id="signOutBtn" data-i18n="auth.signOut">Sign out</button>
             </div>
             <div class="lang-switcher">
-                <button class="lang-btn" data-lang="en">English</button>
-                <button class="lang-btn" data-lang="ru">Русский</button>
-                <button class="lang-btn" data-lang="he">עברית</button>
+                <button class="lang-btn" data-lang="en" data-testid="language-en">English</button>
+                <button class="lang-btn" data-lang="ru" data-testid="language-ru">Русский</button>
+                <button class="lang-btn" data-lang="he" data-testid="language-he">עברית</button>
             </div>
         </div>
     </header>
@@ -700,6 +701,55 @@
             </div>
         </section>
 
+        <!-- ===== ADMIN CLEANUP (admin only) ===== -->
+        <section id="section-adminCleanup" class="section">
+            <div class="section-header">
+                <h1 data-i18n="section.adminCleanup.title">🧹 Admin Cleanup</h1>
+                <p data-i18n="section.adminCleanup.sub">Find and soft-delete test, demo, or automation listings.</p>
+            </div>
+            <div class="admin-cleanup-section" data-testid="admin-cleanup-section">
+                <div class="admin-cleanup-toolbar">
+                    <input type="text" id="adminCleanup-q" class="search-input" placeholder="Search…" data-i18n-placeholder="search.adminCleanup" data-testid="admin-cleanup-search">
+                    <select id="adminCleanup-scenario" class="filter-select" data-testid="admin-cleanup-scenario">
+                        <option value="">All Categories</option>
+                        <option value="found">Found</option>
+                        <option value="lost">Lost</option>
+                        <option value="for_home">For Home</option>
+                        <option value="adopt">Adopt</option>
+                    </select>
+                    <select id="adminCleanup-petType" class="filter-select" data-testid="admin-cleanup-pettype">
+                        <option value="">All Types</option>
+                        <option value="cat">Cat</option>
+                        <option value="dog">Dog</option>
+                        <option value="bird">Bird</option>
+                        <option value="rabbit">Rabbit</option>
+                        <option value="other">Other</option>
+                    </select>
+                    <input type="text" id="adminCleanup-city" class="filter-select filter-control" placeholder="City…" data-i18n-placeholder="filter.cityPlaceholder" data-testid="admin-cleanup-city">
+                    <input type="text" id="adminCleanup-status" class="filter-select filter-control" placeholder="Status…" data-testid="admin-cleanup-status">
+                    <label class="admin-cleanup-checkbox">
+                        <input type="checkbox" id="adminCleanup-testOnly" data-testid="admin-cleanup-testonly">
+                        <span data-i18n="admin.testOnly">Test data only</span>
+                    </label>
+                    <button type="button" class="btn btn-secondary" id="adminCleanup-refresh" data-i18n="admin.refresh" data-testid="admin-cleanup-refresh">Refresh</button>
+                </div>
+                <div class="admin-cleanup-actions">
+                    <label class="admin-cleanup-checkbox">
+                        <input type="checkbox" id="adminCleanup-selectAll" data-testid="admin-cleanup-selectall">
+                        <span data-i18n="admin.selectAll">Select all visible</span>
+                    </label>
+                    <span class="admin-cleanup-selected-count" id="adminCleanup-selectedCount"></span>
+                    <button type="button" class="btn btn-delete" id="adminCleanup-deleteSelected" data-i18n="admin.deleteSelected" disabled data-testid="admin-cleanup-delete-selected">Delete selected</button>
+                </div>
+                <div id="message-adminCleanup" class="section-message hidden" role="status" aria-live="polite"></div>
+                <div id="adminCleanup-list" class="admin-cleanup-table" data-testid="admin-cleanup-list"></div>
+                <div id="loadMoreWrapper-adminCleanup" class="load-more-wrapper hidden">
+                    <button type="button" id="loadMoreBtn-adminCleanup" class="btn btn-secondary load-more-button" data-i18n="btn.loadMore">Load more</button>
+                </div>
+                <div id="empty-adminCleanup" class="empty-state hidden" data-i18n="admin.noCandidates">No cleanup candidates found.</div>
+            </div>
+        </section>
+
     </main>
 
     <footer>
@@ -709,7 +759,7 @@
     <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 
     <!-- ===== LISTING DETAILS MODAL ===== -->
-    <div id="listingDetailsOverlay" class="modal-overlay hidden">
+    <div id="listingDetailsOverlay" class="modal-overlay hidden" data-testid="listing-details-modal">
         <div class="modal" role="dialog" aria-modal="true" aria-labelledby="listingDetailsTitle">
             <div class="modal-header">
                 <h2 id="listingDetailsTitle" data-i18n="modal.details.title">Listing details</h2>
@@ -790,6 +840,7 @@
     <script src="scripts/data/listingsDataSource.js"></script>
     <script src="scripts/data/storiesDataSource.js"></script>
     <script src="scripts/data/authDataSource.js"></script>
+    <script src="scripts/data/adminDataSource.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

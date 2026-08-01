@@ -8,6 +8,7 @@ const listingsRoutes = require('./routes/listings.routes');
 const uploadsRoutes  = require('./routes/uploads.routes');
 const storiesRoutes  = require('./routes/stories.routes');
 const authRoutes     = require('./routes/auth.routes');
+const adminRoutes    = require('./routes/admin.routes');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -23,6 +24,7 @@ app.use('/api/listings', listingsRoutes);
 app.use('/api/uploads',  uploadsRoutes);
 app.use('/api/stories',  storiesRoutes);
 app.use('/api/auth',     authRoutes);
+app.use('/api/admin',    adminRoutes);
 
 // Auth endpoints depend on JWT_SECRET being set — fail fast at startup with a
 // clear message instead of letting every signup/signin 500 with a confusing error.

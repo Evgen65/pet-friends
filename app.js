@@ -471,6 +471,20 @@ const TRANSLATIONS = {
 
         'auth.toast.signedIn':  'You are signed in',
         'auth.toast.signedOut': 'You are signed out',
+
+        'nav.adminCleanup':            'Admin Cleanup',
+        'section.adminCleanup.title':  '🧹 Admin Cleanup',
+        'section.adminCleanup.sub':    'Find and soft-delete test, demo, or automation listings.',
+        'search.adminCleanup':         'Search by name, city, description…',
+        'admin.testOnly':              'Test data only',
+        'admin.refresh':               'Refresh',
+        'admin.selectAll':             'Select all visible',
+        'admin.deleteSelected':        'Delete selected',
+        'admin.noCandidates':          'No cleanup candidates found.',
+        'admin.selectedCount':         'Selected',
+        'admin.accessDenied':          'Access denied.',
+        'admin.confirmDeleteQuestion': 'Delete {count} selected listings?',
+        'admin.confirmDeleteNote':     'This will hide them from the public site.',
     },
 
     ru: {
@@ -681,6 +695,20 @@ const TRANSLATIONS = {
 
         'auth.toast.signedIn':  'Вы вошли в систему',
         'auth.toast.signedOut': 'Вы вышли из системы',
+
+        'nav.adminCleanup':            'Админ-очистка',
+        'section.adminCleanup.title':  '🧹 Админ-очистка',
+        'section.adminCleanup.sub':    'Найдите и мягко удалите тестовые, демо- или автоматизационные объявления.',
+        'search.adminCleanup':         'Поиск по имени, городу или описанию…',
+        'admin.testOnly':              'Только тестовые данные',
+        'admin.refresh':               'Обновить',
+        'admin.selectAll':             'Выбрать все видимые',
+        'admin.deleteSelected':        'Удалить выбранные',
+        'admin.noCandidates':          'Нет объявлений для очистки.',
+        'admin.selectedCount':         'Выбрано',
+        'admin.accessDenied':          'Доступ запрещён.',
+        'admin.confirmDeleteQuestion': 'Удалить {count} выбранных объявлений?',
+        'admin.confirmDeleteNote':     'Они будут скрыты с публичного сайта.',
     },
 
     he: {
@@ -891,6 +919,20 @@ const TRANSLATIONS = {
 
         'auth.toast.signedIn':  'התחברת בהצלחה',
         'auth.toast.signedOut': 'התנתקת בהצלחה',
+
+        'nav.adminCleanup':            'ניקוי מנהל',
+        'section.adminCleanup.title':  '🧹 ניקוי מנהל',
+        'section.adminCleanup.sub':    'מצאו ומחקו מודעות בדיקה, הדגמה או אוטומציה.',
+        'search.adminCleanup':         'חיפוש לפי שם, עיר או תיאור…',
+        'admin.testOnly':              'נתוני בדיקה בלבד',
+        'admin.refresh':               'רענון',
+        'admin.selectAll':             'בחר הכל',
+        'admin.deleteSelected':        'מחק את הנבחרים',
+        'admin.noCandidates':          'לא נמצאו מודעות לניקוי.',
+        'admin.selectedCount':         'נבחרו',
+        'admin.accessDenied':          'הגישה נדחתה.',
+        'admin.confirmDeleteQuestion': 'למחוק {count} מודעות שנבחרו?',
+        'admin.confirmDeleteNote':     'הן יוסתרו מהאתר הציבורי.',
     },
 };
 
@@ -1194,6 +1236,13 @@ function applyTranslations(lang) {
         renderStories();
         refreshSectionMessageLanguage('stories');
     }
+
+    if (document.getElementById('adminCleanup-list')) {
+        renderAdminCleanupList();
+        updateAdminCleanupSelectionUI();
+        updateAdminCleanupLoadMoreButton();
+        refreshSectionMessageLanguage('adminCleanup');
+    }
 }
 
 function initLanguage() {
@@ -1241,6 +1290,14 @@ function showToast(msg) {
 // ===== NAVIGATION =====
 
 function showSection(name) {
+    // Admin Cleanup nav link is hidden for non-admins, but guard the section
+    // itself too in case it's ever reached another way — the backend is the
+    // real authorization boundary, this is just a safe redirect.
+    if (name === 'adminCleanup' && !isAdmin()) {
+        showToast(t('admin.accessDenied'));
+        name = 'home';
+    }
+
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
     document.querySelectorAll('.nav-link').forEach(a => a.classList.remove('active'));
 
@@ -1266,6 +1323,13 @@ function canManageListing(listing) {
     if (!currentUser) return false;
     if (currentUser.role === 'admin') return true;
     return listing.isOwner === true;
+}
+
+// Frontend-only UX gate for the Admin Cleanup nav link/section — the backend
+// (authenticateToken + requireAdmin on /api/admin/*) is the real authorization
+// boundary; this only decides whether to render/allow navigation to it.
+function isAdmin() {
+    return currentUser?.role === 'admin';
 }
 
 // Maps a thrown apiUpdateListing/apiDeleteListing error (see listingsDataSource
@@ -1317,7 +1381,7 @@ function renderListings(section) {
         if (item.phone) rows.push(`<div class="card-field"><dt>${esc(t('card.contactPhone'))}</dt><dd><span class="ltr-value"><a href="tel:${esc(item.phone)}">${esc(item.phone)}</a></span></dd></div>`);
 
         return `
-        <div class="listing-card ${section}">
+        <div class="listing-card ${section}" data-testid="listing-card">
             <div class="card-photo">
                 <img src="${esc(photoSrc)}" alt="${photoAlt}" loading="lazy"
                      onerror="if(!this.dataset.fb){this.dataset.fb='1';this.src='${PHOTO_PLACEHOLDER}'}">
@@ -1333,7 +1397,7 @@ function renderListings(section) {
                 ${item.isOwner === true ? `<span class="badge owner-badge">${esc(t('badge.myListing'))}</span>` : ''}
             </div>
             <div class="card-actions">
-                <button class="btn btn-secondary" data-action="details" data-id="${esc(item.id)}">${t('btn.viewDetails')}</button>
+                <button class="btn btn-secondary" data-action="details" data-id="${esc(item.id)}" data-testid="view-details-button">${t('btn.viewDetails')}</button>
                 ${canManageListing(item) ? `
                 <button class="btn btn-edit"   data-action="edit"   data-id="${esc(item.id)}">${t('btn.edit')}</button>
                 <button class="btn btn-delete" data-action="delete" data-id="${esc(item.id)}">${t('btn.delete')}</button>
@@ -1747,10 +1811,23 @@ function clearAuthSession() {
     refreshAllListingSections();
 }
 
+// Hides the Admin Cleanup section if it's currently open and the signed-in
+// user is no longer an admin (e.g. just signed out) — the nav link is hidden
+// too, but a section already open needs an explicit redirect.
+function enforceAdminSectionAccess() {
+    const activeSection = document.querySelector('.section.active');
+    if (activeSection?.id === 'section-adminCleanup' && !isAdmin()) {
+        showSection('home');
+    }
+}
+
 function renderAuthUI() {
     const guestEl = document.getElementById('authActionsGuest');
     const userEl  = document.getElementById('authActionsUser');
     const nameEl  = document.getElementById('authUserName');
+    const adminNavEl = document.getElementById('navAdminCleanup');
+    if (adminNavEl) adminNavEl.classList.toggle('hidden', !isAdmin());
+    enforceAdminSectionAccess();
     if (!guestEl || !userEl) return;
     if (currentUser) {
         guestEl.classList.add('hidden');
@@ -2149,6 +2226,212 @@ function setupStoriesSection() {
     document.getElementById('filter-cat-stories')?.addEventListener('change', renderStories);
 }
 
+// ===== ADMIN CLEANUP =====
+// Admin-only listing review/bulk soft-delete. Backend (authenticateToken +
+// requireAdmin on /api/admin/*) is the real authorization boundary — see
+// isAdmin() / showSection() / renderAuthUI() for the frontend UX gates.
+
+const ADMIN_CLEANUP_PAGE_SIZE = 50;
+const ADMIN_UPLOAD_ORIGIN     = 'http://localhost:3000';
+
+const adminCleanupState = {
+    items:        [],
+    selectedIds:  new Set(),
+    page:         1,
+    totalPages:   1,
+    total:        0,
+    loadingMore:  false,
+};
+
+function mapAdminActionError(err) {
+    if (err.status === 401) return t('error.listing.unauthorized');
+    if (err.status === 403) return t('admin.accessDenied');
+    return t('error.save');
+}
+
+function getAdminCleanupFilters() {
+    return {
+        q:        document.getElementById('adminCleanup-q')?.value.trim() || '',
+        scenario: document.getElementById('adminCleanup-scenario')?.value || '',
+        petType:  document.getElementById('adminCleanup-petType')?.value || '',
+        city:     document.getElementById('adminCleanup-city')?.value.trim() || '',
+        status:   document.getElementById('adminCleanup-status')?.value.trim() || '',
+        testOnly: document.getElementById('adminCleanup-testOnly')?.checked || false,
+    };
+}
+
+function updateAdminCleanupLoadMoreButton() {
+    const wrapper = document.getElementById('loadMoreWrapper-adminCleanup');
+    const btn     = document.getElementById('loadMoreBtn-adminCleanup');
+    if (!wrapper || !btn) return;
+    wrapper.classList.toggle('hidden', adminCleanupState.page >= adminCleanupState.totalPages);
+    btn.disabled    = adminCleanupState.loadingMore;
+    btn.textContent = adminCleanupState.loadingMore ? t('btn.loadingMore') : t('btn.loadMore');
+}
+
+function updateAdminCleanupSelectionUI() {
+    const countEl      = document.getElementById('adminCleanup-selectedCount');
+    const deleteBtn     = document.getElementById('adminCleanup-deleteSelected');
+    const selectAllEl   = document.getElementById('adminCleanup-selectAll');
+    const count          = adminCleanupState.selectedIds.size;
+
+    if (countEl) countEl.textContent = count > 0 ? `${t('admin.selectedCount')}: ${count}` : '';
+    if (deleteBtn) deleteBtn.disabled = count === 0;
+    if (selectAllEl) {
+        const visibleIds = adminCleanupState.items.map(i => i.id);
+        selectAllEl.checked = visibleIds.length > 0 && visibleIds.every(id => adminCleanupState.selectedIds.has(id));
+    }
+}
+
+function renderAdminCleanupList() {
+    const listEl  = document.getElementById('adminCleanup-list');
+    const emptyEl = document.getElementById('empty-adminCleanup');
+    if (!listEl) return;
+
+    const items = adminCleanupState.items;
+    if (items.length === 0) {
+        listEl.innerHTML = '';
+        emptyEl?.classList.remove('hidden');
+        return;
+    }
+    emptyEl?.classList.add('hidden');
+
+    listEl.innerHTML = items.map(item => {
+        const checked  = adminCleanupState.selectedIds.has(item.id);
+        const photoSrc = item.photoUrl ? ADMIN_UPLOAD_ORIGIN + item.photoUrl : PHOTO_PLACEHOLDER;
+        const created  = item.createdAt ? fmtTimestamp(new Date(item.createdAt).getTime()) : '';
+
+        return `
+        <div class="admin-cleanup-card" data-testid="admin-cleanup-card">
+            <label class="admin-cleanup-select">
+                <input type="checkbox" class="admin-cleanup-item-checkbox" data-id="${esc(item.id)}" ${checked ? 'checked' : ''} data-testid="admin-cleanup-item-checkbox">
+            </label>
+            <img class="admin-cleanup-photo" src="${esc(photoSrc)}" alt=""
+                 onerror="if(!this.dataset.fb){this.dataset.fb='1';this.src='${PHOTO_PLACEHOLDER}'}">
+            <div class="admin-cleanup-info">
+                <div class="admin-cleanup-title">
+                    <span>${esc(item.petNameOrTitle || '')}</span>
+                    <span class="badge badge-type">${esc(item.scenario || '')} / ${esc(item.petType || '')}</span>
+                </div>
+                <div class="admin-cleanup-meta">
+                    <span>#${esc(item.id)}</span>
+                    ${item.city ? `<span>${esc(item.city)}</span>` : ''}
+                    ${item.status ? `<span class="badge badge-status-${esc(item.status.toLowerCase())}">${esc(item.status)}</span>` : ''}
+                    ${item.contentLanguage ? `<span class="badge badge-lang">${esc(item.contentLanguage)}</span>` : ''}
+                    ${item.createdByUserId != null ? `<span>uid:${esc(item.createdByUserId)}</span>` : ''}
+                    ${created ? `<span>${esc(created)}</span>` : ''}
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// { append: true } loads the next page and concatenates it onto the existing
+// list (Load more). The default starts over from page 1 — used for the
+// initial load, filter changes, Refresh, and post-delete reloads.
+async function refreshAdminCleanup({ append = false } = {}) {
+    if (!isAdmin()) return;
+
+    if (append) {
+        if (adminCleanupState.loadingMore) return;
+        adminCleanupState.loadingMore = true;
+        updateAdminCleanupLoadMoreButton();
+    } else {
+        setSectionLoading('adminCleanup');
+        adminCleanupState.page = 1;
+        adminCleanupState.selectedIds.clear();
+    }
+
+    const requestedPage = append ? adminCleanupState.page + 1 : 1;
+
+    try {
+        const { items, pagination } = await window.PetFriendsAdminDataSource.getAdminListings(
+            getAdminCleanupFilters(),
+            { page: requestedPage, limit: ADMIN_CLEANUP_PAGE_SIZE }
+        );
+
+        adminCleanupState.items = append ? [...adminCleanupState.items, ...items] : items;
+        adminCleanupState.page        = pagination.page ?? requestedPage;
+        adminCleanupState.totalPages  = pagination.totalPages ?? 1;
+        adminCleanupState.total       = pagination.total ?? adminCleanupState.items.length;
+        adminCleanupState.loadingMore = false;
+
+        if (!append) clearSectionMessage('adminCleanup');
+        renderAdminCleanupList();
+        updateAdminCleanupLoadMoreButton();
+        updateAdminCleanupSelectionUI();
+    } catch (err) {
+        console.error('[adminCleanup] Failed to load:', err.message);
+        adminCleanupState.loadingMore = false;
+
+        if (append) {
+            showToast(mapAdminActionError(err));
+            updateAdminCleanupLoadMoreButton();
+        } else {
+            setSectionError('adminCleanup');
+            document.getElementById('adminCleanup-list')?.replaceChildren();
+            document.getElementById('empty-adminCleanup')?.classList.add('hidden');
+            document.getElementById('loadMoreWrapper-adminCleanup')?.classList.add('hidden');
+        }
+    }
+}
+
+function setupAdminCleanup() {
+    const reloadNow       = () => refreshAdminCleanup();
+    const reloadDebounced = debounce(reloadNow, 300);
+
+    document.getElementById('adminCleanup-q')?.addEventListener('input', reloadDebounced);
+    document.getElementById('adminCleanup-scenario')?.addEventListener('change', reloadNow);
+    document.getElementById('adminCleanup-petType')?.addEventListener('change', reloadNow);
+    document.getElementById('adminCleanup-city')?.addEventListener('input', reloadDebounced);
+    document.getElementById('adminCleanup-status')?.addEventListener('input', reloadDebounced);
+    document.getElementById('adminCleanup-testOnly')?.addEventListener('change', reloadNow);
+    document.getElementById('adminCleanup-refresh')?.addEventListener('click', reloadNow);
+
+    document.getElementById('loadMoreBtn-adminCleanup')?.addEventListener('click', () => {
+        refreshAdminCleanup({ append: true });
+    });
+
+    document.getElementById('adminCleanup-selectAll')?.addEventListener('change', e => {
+        if (e.target.checked) {
+            adminCleanupState.items.forEach(i => adminCleanupState.selectedIds.add(i.id));
+        } else {
+            adminCleanupState.items.forEach(i => adminCleanupState.selectedIds.delete(i.id));
+        }
+        renderAdminCleanupList();
+        updateAdminCleanupSelectionUI();
+    });
+
+    document.getElementById('adminCleanup-list')?.addEventListener('change', e => {
+        const cb = e.target.closest('.admin-cleanup-item-checkbox');
+        if (!cb) return;
+        const id = Number(cb.dataset.id);
+        if (cb.checked) adminCleanupState.selectedIds.add(id);
+        else adminCleanupState.selectedIds.delete(id);
+        updateAdminCleanupSelectionUI();
+    });
+
+    document.getElementById('adminCleanup-deleteSelected')?.addEventListener('click', async () => {
+        const ids = [...adminCleanupState.selectedIds];
+        if (ids.length === 0) return;
+
+        const confirmMsg = t('admin.confirmDeleteQuestion').replace('{count}', ids.length)
+            + ' ' + t('admin.confirmDeleteNote');
+        if (!confirm(confirmMsg)) return;
+
+        try {
+            const { deletedCount } = await window.PetFriendsAdminDataSource.bulkDeleteListings(ids);
+            showToast(`${t('toast.listing.deleted')} (${deletedCount})`);
+            adminCleanupState.selectedIds.clear();
+            await refreshAdminCleanup();
+            refreshAllListingSections(); // deleted listings must disappear from public sections too
+        } catch (err) {
+            console.error('[adminCleanup] Bulk delete failed:', err.message);
+            showToast(mapAdminActionError(err));
+        }
+    });
+}
+
 // ===== CONTACT =====
 
 function setupContact() {
@@ -2523,6 +2806,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         link.addEventListener('click', e => {
             e.preventDefault();
             showSection(link.dataset.section);
+            if (link.dataset.section === 'adminCleanup' && isAdmin()) {
+                refreshAdminCleanup();
+            }
         });
     });
 
@@ -2595,6 +2881,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     ['found', 'lost', 'forHome', 'adopt'].forEach(s => setupListingSection(s));
     setupStoriesSection();
     setupContact();
+    setupAdminCleanup();
     updateStats();
 
     // Apply saved/default language — triggers the first render of all cards

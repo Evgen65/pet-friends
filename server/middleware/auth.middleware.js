@@ -85,4 +85,17 @@ async function optionalAuthenticateToken(req, res, next) {
   }
 }
 
-module.exports = { authenticateToken, optionalAuthenticateToken, getJwtSecret };
+// Must run after authenticateToken (req.user is required). A missing
+// req.user means the caller wasn't authenticated at all (401); an
+// authenticated non-admin gets 403.
+function requireAdmin(req, res, next) {
+  if (!req.user) {
+    return res.status(401).json({ status: 'error', message: 'Unauthorized' });
+  }
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ status: 'error', message: 'Forbidden' });
+  }
+  next();
+}
+
+module.exports = { authenticateToken, optionalAuthenticateToken, requireAdmin, getJwtSecret };
