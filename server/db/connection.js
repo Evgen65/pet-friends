@@ -12,11 +12,31 @@ const useSSL = String(process.env.DB_SSL).toLowerCase() === 'true';
 // default trust store doesn't know — without it, mysql2 rejects the
 // connection with "self-signed certificate in certificate chain" even though
 // rejectUnauthorized:true is the correct, secure setting.
+// Temporary diagnostics for the Aiven "self-signed certificate in
+// certificate chain" issue — logs shape/length info only, never secrets or
+// certificate content. Runs once at module load (pool creation), not per
+// request. Safe to remove once the SSL handshake is confirmed working.
 function buildSslConfig() {
-  if (!useSSL) return undefined;
+  if (!useSSL) {
+    console.log('[db-ssl] DB_SSL=false — ssl disabled');
+    return undefined;
+  }
 
-  if (process.env.DB_SSL_CA_BASE64) {
-    const ca = Buffer.from(process.env.DB_SSL_CA_BASE64, 'base64').toString('utf8');
+  const caBase64 = process.env.DB_SSL_CA_BASE64;
+  const caBase64Present = Boolean(caBase64);
+  console.log(
+    `[db-ssl] DB_SSL=true; DB_SSL_CA_BASE64 present=${caBase64Present}, ` +
+    `length=${caBase64Present ? caBase64.length : 0}`
+  );
+
+  if (caBase64) {
+    const ca = Buffer.from(caBase64, 'base64').toString('utf8');
+    console.log(
+      `[db-ssl] decoded CA length=${ca.length}, ` +
+      `hasBeginMarker=${ca.includes('BEGIN CERTIFICATE')}, ` +
+      `hasEndMarker=${ca.includes('END CERTIFICATE')}`
+    );
+    console.log('[db-ssl] mode: ssl ca with rejectUnauthorized true');
     return { ca, rejectUnauthorized: true };
   }
 
@@ -25,6 +45,7 @@ function buildSslConfig() {
     'custom CA. This will fail against providers whose cert chains to a ' +
     'private CA (e.g. Aiven) with "self-signed certificate in certificate chain".'
   );
+  console.log('[db-ssl] mode: ssl rejectUnauthorized true without ca');
   return { rejectUnauthorized: true };
 }
 
