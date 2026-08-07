@@ -16,6 +16,6 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 window.PET_FRIENDS_CONFIG = {
-    // API_BASE_URL: 'http://localhost:3000',
-    API_BASE_URL: 'https://pet-friends-api.onrender.com',
+     API_BASE_URL: 'http://localhost:3000',
+   // API_BASE_URL: 'https://pet-friends-api.onrender.com',
 };
