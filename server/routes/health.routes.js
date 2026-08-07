@@ -3,7 +3,12 @@ const router = express.Router();
 const { testConnection } = require('../db/connection');
 
 router.get('/', (_req, res) => {
-  res.json({ status: 'ok', service: 'pet-friends-api' });
+  // environment only — never DB credentials, JWT secret, or other config.
+  res.json({
+    status:      'ok',
+    service:     'pet-friends-api',
+    environment: process.env.NODE_ENV || 'development',
+  });
 });
 
 router.get('/db', async (_req, res) => {

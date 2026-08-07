@@ -17,7 +17,9 @@ window.PetFriendsListingsDataSource = (function () {
     // Only sections listed here use the backend API.  All others use localStorage.
     const API_ENABLED_SECTIONS = new Set(['found', 'lost', 'forHome', 'adopt']);
 
-    const API_ORIGIN   = 'http://localhost:3000';
+    // Falls back to localhost if scripts/config.js wasn't loaded for some
+    // reason — keeps local usage working even without the config file.
+    const API_ORIGIN   = window.PET_FRIENDS_CONFIG?.API_BASE_URL || 'http://localhost:3000';
     const API_BASE_URL = API_ORIGIN + '/api/listings';
 
     // Must stay in sync with AUTH_TOKEN_KEY in app.js.
@@ -103,10 +105,22 @@ window.PetFriendsListingsDataSource = (function () {
         };
     }
 
+    // Only local uploads ('/uploads/...') need the API origin prefixed so
+    // <img src> works when the HTML is opened outside the backend's static
+    // server. Cloudinary (or any other future provider) already returns an
+    // absolute URL and must be used as-is.
+    function _toDisplayPhotoUrl(rawPhotoUrl) {
+        if (typeof rawPhotoUrl === 'string' && rawPhotoUrl.startsWith('/uploads/')) {
+            return API_ORIGIN + rawPhotoUrl;
+        }
+        return rawPhotoUrl || null;
+    }
+
     // Convert a backend API response record → frontend record shape.
     // photo.url is stored as full absolute URL so <img src> works when the
     // HTML is opened outside the backend's static server.
-    // photoUrl (relative) is kept for PUT payloads and for edit-without-change.
+    // photoUrl (as returned by the backend, relative or absolute) is kept for
+    // PUT payloads and for edit-without-change.
     function fromApiRecord(rec) {
         const relPhotoUrl = rec.photoUrl || null;
         return {
@@ -122,9 +136,10 @@ window.PetFriendsListingsDataSource = (function () {
             status:          rec.status         ?? 'Open',
             contentLanguage: rec.contentLanguage ?? 'en',
             photo:    relPhotoUrl
-                          ? { source: 'asset', url: API_ORIGIN + relPhotoUrl }
+                          ? { source: 'asset', url: _toDisplayPhotoUrl(relPhotoUrl) }
                           : null,
-            photoUrl: relPhotoUrl,  // relative path for API payloads
+            photoUrl: relPhotoUrl,  // raw backend value (relative or absolute) for API payloads
+            photoPublicId: rec.photoPublicId ?? null,
             createdByUserId: rec.createdByUserId ?? null,
             isOwner:         rec.isOwner === true,
             ownerName:       rec.ownerName ?? null,

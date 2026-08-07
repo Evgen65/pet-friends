@@ -2232,7 +2232,9 @@ function setupStoriesSection() {
 // isAdmin() / showSection() / renderAuthUI() for the frontend UX gates.
 
 const ADMIN_CLEANUP_PAGE_SIZE = 50;
-const ADMIN_UPLOAD_ORIGIN     = 'http://localhost:3000';
+// Falls back to localhost if scripts/config.js wasn't loaded for some
+// reason — keeps local usage working even without the config file.
+const ADMIN_UPLOAD_ORIGIN = window.PET_FRIENDS_CONFIG?.API_BASE_URL || 'http://localhost:3000';
 
 const adminCleanupState = {
     items:        [],
@@ -2298,7 +2300,12 @@ function renderAdminCleanupList() {
 
     listEl.innerHTML = items.map(item => {
         const checked  = adminCleanupState.selectedIds.has(item.id);
-        const photoSrc = item.photoUrl ? ADMIN_UPLOAD_ORIGIN + item.photoUrl : PHOTO_PLACEHOLDER;
+        // Only local uploads ('/uploads/...') need the API origin prefixed —
+        // Cloudinary (or any other future provider) already returns an
+        // absolute URL and must be used as-is.
+        const photoSrc = item.photoUrl
+            ? (item.photoUrl.startsWith('/uploads/') ? ADMIN_UPLOAD_ORIGIN + item.photoUrl : item.photoUrl)
+            : PHOTO_PLACEHOLDER;
         const created  = item.createdAt ? fmtTimestamp(new Date(item.createdAt).getTime()) : '';
 
         return `

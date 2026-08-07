@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS listings (
   status           VARCHAR(50) NOT NULL DEFAULT 'open',
   content_language ENUM('en', 'ru', 'he') NOT NULL DEFAULT 'en',
   photo_url        VARCHAR(500) NULL,
+  photo_public_id  VARCHAR(255) NULL,
   created_by_user_id INT NULL,
   created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

@@ -26,7 +26,7 @@ const BASE_SELECT = `
     l.id, l.scenario, l.pet_type, l.pet_name_or_title, l.breed, l.city,
     DATE_FORMAT(l.event_date, '%Y-%m-%d') AS event_date, l.description,
     l.contact_email, l.contact_phone, l.status, l.content_language,
-    l.photo_url, l.created_by_user_id,
+    l.photo_url, l.photo_public_id, l.created_by_user_id,
     l.created_at, l.updated_at
   FROM listings l
   WHERE l.deleted_at IS NULL

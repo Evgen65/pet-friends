@@ -12,7 +12,9 @@
 
 window.PetFriendsStoriesDataSource = (function () {
 
-    const API_ORIGIN   = 'http://localhost:3000';
+    // Falls back to localhost if scripts/config.js wasn't loaded for some
+    // reason — keeps local usage working even without the config file.
+    const API_ORIGIN   = window.PET_FRIENDS_CONFIG?.API_BASE_URL || 'http://localhost:3000';
     const API_BASE_URL = API_ORIGIN + '/api/stories';
 
     // ── Record conversion ────────────────────────────────────────────────────

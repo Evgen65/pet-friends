@@ -28,7 +28,7 @@ const BASE_SELECT = `
     l.id, l.scenario, l.pet_type, l.pet_name_or_title, l.breed, l.city,
     DATE_FORMAT(l.event_date, '%Y-%m-%d') AS event_date, l.description,
     l.contact_email, l.contact_phone, l.status, l.content_language,
-    l.photo_url, l.created_by_user_id, u.name AS owner_name,
+    l.photo_url, l.photo_public_id, l.created_by_user_id, u.name AS owner_name,
     l.created_at, l.updated_at
   FROM listings l
   LEFT JOIN users u ON u.id = l.created_by_user_id
@@ -56,6 +56,7 @@ function validateListingPayload(body) {
     status,
     contentLanguage = 'en',
     photoUrl        = null,
+    photoPublicId   = null,
   } = body ?? {};
 
   const errors = [];
@@ -88,6 +89,7 @@ function validateListingPayload(body) {
     values: {
       scenario, petType, petNameOrTitle, breed, city, eventDate,
       description, contactEmail, contactPhone, status, contentLanguage, photoUrl,
+      photoPublicId,
     },
   };
 }
@@ -161,6 +163,7 @@ function toApiShape(row, currentUserId) {
     status:          row.status,
     contentLanguage: row.content_language,
     photoUrl:        row.photo_url,
+    photoPublicId:   row.photo_public_id ?? null,
     createdByUserId: row.created_by_user_id ?? null,
     ownerName:       row.owner_name ?? null,
     isOwner:         currentUserId != null && row.created_by_user_id === currentUserId,
@@ -286,13 +289,13 @@ async function createListing(req, res) {
       `INSERT INTO listings
          (scenario, pet_type, pet_name_or_title, breed, city, event_date,
           description, contact_email, contact_phone, status, content_language, photo_url,
-          created_by_user_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          photo_public_id, created_by_user_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         values.scenario, values.petType, values.petNameOrTitle, values.breed,
         values.city, values.eventDate, values.description, values.contactEmail,
         values.contactPhone, values.status ?? 'open', values.contentLanguage, values.photoUrl,
-        req.user?.id ?? null,
+        values.photoPublicId, req.user?.id ?? null,
       ]
     );
 
@@ -321,7 +324,8 @@ async function updateListing(req, res) {
       `UPDATE listings SET
          scenario = ?, pet_type = ?, pet_name_or_title = ?, breed = ?,
          city = ?, event_date = ?, description = ?, contact_email = ?,
-         contact_phone = ?, status = ?, content_language = ?, photo_url = ?
+         contact_phone = ?, status = ?, content_language = ?, photo_url = ?,
+         photo_public_id = ?
        WHERE id = ? AND deleted_at IS NULL`,
       [
         values.scenario,
@@ -336,6 +340,7 @@ async function updateListing(req, res) {
         values.status ?? existing.status,
         values.contentLanguage,
         values.photoUrl,
+        values.photoPublicId,
         id,
       ]
     );
