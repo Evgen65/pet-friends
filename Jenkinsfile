@@ -93,7 +93,7 @@ pipeline {
                 // Playwright-provided Docker image (mcr.microsoft.com/
                 // playwright:<version>) as the agent instead, which already
                 // ships Chrome preinstalled, and this stage becomes a no-op.
-                sh 'npx playwright install --with-deps chrome'
+                sh 'npx playwright install chromium'
             }
         }
 
