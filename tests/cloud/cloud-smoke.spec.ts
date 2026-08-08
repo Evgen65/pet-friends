@@ -1,0 +1,171 @@
+// Playwright cloud smoke suite — Milestone 27.
+//
+// Runs against the already-deployed Pet Friends site (Render frontend +
+// Render backend + Aiven MySQL + Cloudinary), not against anything started
+// locally. Run with:
+//   npx playwright test -c playwright.cloud.config.ts
+//   npm run test:cloud
+//
+// URLs and the optional dedicated test-user credentials come from
+// tests/cloud/cloud-env.ts (env vars, no secrets in this repo — see that
+// file's comments for the variable names).
+import { test, expect } from '@playwright/test';
+import {
+    API_URL,
+    TEST_EMAIL,
+    TEST_PASSWORD,
+    HAS_TEST_CREDENTIALS,
+    COLD_START_TIMEOUT,
+} from './cloud-env';
+import {
+    signIn,
+    signOut,
+    uniqueTitle,
+    createFoundListing,
+    findFoundListingCard,
+    deleteFoundListingCard,
+} from './helpers';
+
+// ── Test 1 — Cloud backend health ───────────────────────────────────────────
+
+test.describe('Cloud backend health', () => {
+    test('health, health/db, listings and stories endpoints respond 200', async ({ request }) => {
+        // First call absorbs a possible Render cold start.
+        const health = await request.get(`${API_URL}/api/health`, { timeout: COLD_START_TIMEOUT });
+        expect(health.status()).toBe(200);
+
+        const healthDb = await request.get(`${API_URL}/api/health/db`);
+        expect(healthDb.status()).toBe(200);
+
+        const listings = await request.get(`${API_URL}/api/listings?limit=1`);
+        expect(listings.status()).toBe(200);
+
+        const stories = await request.get(`${API_URL}/api/stories`);
+        expect(stories.status()).toBe(200);
+    });
+});
+
+// ── Test 2 — Cloud frontend opens ───────────────────────────────────────────
+
+test.describe('Cloud frontend', () => {
+    test('main page loads and shows navigation sections', async ({ page }) => {
+        const consoleErrors: string[] = [];
+        page.on('console', msg => {
+            if (msg.type() !== 'error') return;
+            const text = msg.text();
+            // Ignore the favicon 404 — a pre-existing, harmless gap unrelated
+            // to app functionality (see local smoke suite for the same note).
+            if (text.includes('favicon.ico')) return;
+            consoleErrors.push(text);
+        });
+
+        await page.goto('/', { waitUntil: 'domcontentloaded' });
+
+        // Cold start: give the very first paint extra time.
+        await expect(page.locator('.logo')).toHaveText('🐾 Pet Friends', { timeout: COLD_START_TIMEOUT });
+
+        await expect(page.getByRole('link', { name: 'Found Pets' })).toBeVisible();
+        await expect(page.getByRole('link', { name: 'Lost Pets' })).toBeVisible();
+        await expect(page.getByRole('link', { name: 'Pets for Home' })).toBeVisible();
+        await expect(page.getByRole('link', { name: 'I Want to Adopt' })).toBeVisible();
+        await expect(page.getByRole('link', { name: 'Pet Stories' })).toBeVisible();
+
+        expect(consoleErrors, `Unexpected console errors: ${consoleErrors.join(' | ')}`).toEqual([]);
+    });
+});
+
+// ── Test 3 — Language smoke ─────────────────────────────────────────────────
+
+test.describe('Language smoke', () => {
+    test('RU and HE switch UI text and direction, then back to EN', async ({ page }) => {
+        await page.goto('/');
+        await expect(page.locator('.logo')).toBeVisible({ timeout: COLD_START_TIMEOUT });
+
+        await page.getByTestId('language-ru').click();
+        await expect(page.getByRole('link', { name: 'Главная' })).toBeVisible();
+
+        await page.getByTestId('language-he').click();
+        await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+        await expect(page.getByRole('link', { name: 'בית' })).toBeVisible();
+
+        await page.getByTestId('language-en').click();
+        await expect(page.locator('html')).toHaveAttribute('dir', 'ltr');
+        await expect(page.getByRole('link', { name: 'Home', exact: true })).toBeVisible();
+    });
+});
+
+// ── Test 4 — Auth smoke ─────────────────────────────────────────────────────
+// Skips (does not fail) when no dedicated cloud test user is configured.
+
+test.describe('Auth smoke', () => {
+    test('sign in and sign out with the dedicated cloud test user', async ({ page }) => {
+        test.skip(!HAS_TEST_CREDENTIALS,
+            'CLOUD_TEST_EMAIL / CLOUD_TEST_PASSWORD not set — skipping auth smoke test.');
+
+        await page.goto('/');
+        await expect(page.getByTestId('auth-signin-button')).toBeVisible({ timeout: COLD_START_TIMEOUT });
+
+        await signIn(page, TEST_EMAIL!, TEST_PASSWORD!);
+        await expect(page.locator('#authActionsGuest')).toBeHidden();
+
+        await signOut(page);
+        await expect(page.locator('#authActionsUser')).toBeHidden();
+    });
+});
+
+// ── Test 5 — Create listing smoke, with cleanup ─────────────────────────────
+// Skips when no dedicated cloud test user is configured: creating as a guest
+// would leave a listing with no owner, and the UI only exposes Delete to the
+// listing's owner (or an admin) — we would have no reliable, exact-id way to
+// clean it back up, which the test-data rules for this milestone require.
+
+test.describe('Create listing smoke', () => {
+    test('creates a Found Pet listing, verifies it, then deletes it', async ({ page }) => {
+        test.skip(!HAS_TEST_CREDENTIALS,
+            'CLOUD_TEST_EMAIL / CLOUD_TEST_PASSWORD not set — skipping create-listing smoke test.');
+
+        const title = uniqueTitle('Cat');
+
+        await page.goto('/');
+        await expect(page.getByTestId('auth-signin-button')).toBeVisible({ timeout: COLD_START_TIMEOUT });
+        await signIn(page, TEST_EMAIL!, TEST_PASSWORD!);
+
+        await createFoundListing(page, { title });
+
+        const card = await findFoundListingCard(page, title);
+        await expect(card).toBeVisible();
+
+        await deleteFoundListingCard(page, card);
+        // findFoundListingCard already re-searched by the unique title, so a
+        // zero count here means only this test's own listing was removed.
+    });
+});
+
+// ── Test 6 — Upload smoke, with cleanup ─────────────────────────────────────
+
+test.describe('Upload smoke', () => {
+    test('creates a listing with a photo and the card displays an image', async ({ page }) => {
+        test.skip(!HAS_TEST_CREDENTIALS,
+            'CLOUD_TEST_EMAIL / CLOUD_TEST_PASSWORD not set — skipping upload smoke test.');
+
+        const title = uniqueTitle('Upload');
+
+        await page.goto('/');
+        await expect(page.getByTestId('auth-signin-button')).toBeVisible({ timeout: COLD_START_TIMEOUT });
+        await signIn(page, TEST_EMAIL!, TEST_PASSWORD!);
+
+        await createFoundListing(page, {
+            title,
+            photoPath: 'tests/fixtures/test-pet.png',
+        });
+
+        const card = await findFoundListingCard(page, title);
+        const img = card.locator('.card-photo img');
+
+        // A successful Cloudinary upload gives an absolute res.cloudinary.com
+        // URL; the placeholder SVG (no photo / failed upload) never does.
+        await expect(img).toHaveAttribute('src', /res\.cloudinary\.com/, { timeout: COLD_START_TIMEOUT });
+
+        await deleteFoundListingCard(page, card);
+    });
+});

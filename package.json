@@ -10,7 +10,10 @@
     "dev:server": "nodemon server/server.js",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e:ui": "playwright test --ui",
+    "test:cloud": "playwright test -c playwright.cloud.config.ts",
+    "test:cloud:headed": "playwright test -c playwright.cloud.config.ts --headed",
+    "test:cloud:ui": "playwright test -c playwright.cloud.config.ts --ui"
   },
   "keywords": [],
   "author": "",
