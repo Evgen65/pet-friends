@@ -49,14 +49,38 @@ test.describe('Cloud backend health', () => {
 
 test.describe('Cloud frontend', () => {
     test('main page loads and shows navigation sections', async ({ page }) => {
+        // Browsers auto-request these regardless of whether the app links to
+        // them; the app never references them, so a 404 here is not a real
+        // static-deploy problem — see index.html, which has no <link
+        // rel="icon"/apple-touch-icon>. Any other 404 (e.g. assets/images/*,
+        // app.js, styles.css) is a genuine missing-asset problem and must fail.
+        const HARMLESS_404_RE = /\/(favicon\.ico|apple-touch-icon(-precomposed)?\.png)$/;
+
+        // Chrome logs a generic, URL-less "Failed to load resource: the server
+        // responded with a status of 404 ()" console error for every failed
+        // network request. It carries no information the 'response' listener
+        // below doesn't already capture with the actual URL/status/type
+        // attached, so it's dropped here to avoid a duplicate, useless entry —
+        // any real failed request still fails the test via failedResponses.
+        const GENERIC_RESOURCE_ERROR_RE = /^Failed to load resource:/;
+
         const consoleErrors: string[] = [];
         page.on('console', msg => {
             if (msg.type() !== 'error') return;
-            const text = msg.text();
-            // Ignore the favicon 404 — a pre-existing, harmless gap unrelated
-            // to app functionality (see local smoke suite for the same note).
-            if (text.includes('favicon.ico')) return;
-            consoleErrors.push(text);
+            if (GENERIC_RESOURCE_ERROR_RE.test(msg.text())) return;
+            const location = msg.location()?.url;
+            consoleErrors.push(
+                `[console.${msg.type()}] ${msg.text()}${location ? ` (${location})` : ''}`
+            );
+        });
+
+        const failedResponses: string[] = [];
+        page.on('response', response => {
+            if (response.status() < 400) return;
+            if (HARMLESS_404_RE.test(new URL(response.url()).pathname)) return;
+            failedResponses.push(
+                `[${response.status()}] ${response.request().resourceType()} ${response.url()}`
+            );
         });
 
         await page.goto('/', { waitUntil: 'domcontentloaded' });
@@ -70,7 +94,8 @@ test.describe('Cloud frontend', () => {
         await expect(page.getByRole('link', { name: 'I Want to Adopt' })).toBeVisible();
         await expect(page.getByRole('link', { name: 'Pet Stories' })).toBeVisible();
 
-        expect(consoleErrors, `Unexpected console errors: ${consoleErrors.join(' | ')}`).toEqual([]);
+        const problems = [...failedResponses, ...consoleErrors];
+        expect(problems, `Unexpected frontend problems:\n${problems.join('\n')}`).toEqual([]);
     });
 });
 
