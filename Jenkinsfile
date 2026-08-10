@@ -61,6 +61,65 @@ pipeline {
             }
         }
 
+        stage('Determine branch policy') {
+            steps {
+                script {
+                    // Prefer the Multibranch Pipeline variable, fall back to
+                    // the older job-scm provided GIT_BRANCH.
+                    def rawBranchName = env.BRANCH_NAME ?: ''
+                    def rawGITBranch = env.GIT_BRANCH ?: ''
+
+                    // Start from whichever has a value, BRANCH_NAME preferred.
+                    def candidate = rawBranchName ?: rawGITBranch ?: 'unknown'
+
+                    // Normalize common prefixes like refs/heads/, refs/remotes/origin/, origin/
+                    def normalized = candidate
+                    normalized = normalized.replaceFirst('^refs/heads/', '')
+                    normalized = normalized.replaceFirst('^refs/remotes/origin/', '')
+                    normalized = normalized.replaceFirst('^origin/', '')
+                    normalized = normalized.trim()
+                    if (!normalized) {
+                        normalized = 'unknown'
+                    }
+
+                    // Determine branch category and a human-readable CI policy label.
+                    // Mapping follows docs/jenkins-pipeline-model.md — Milestone 33.
+                    def category = 'unknown branch'
+                    def policy = 'full cloud smoke (warning: unrecognized branch)'
+                    if (normalized == 'main') {
+                        category = 'production branch'
+                        policy = 'full cloud smoke, no deploy yet'
+                    } else if (normalized == 'develop') {
+                        category = 'integration/staging branch'
+                        policy = 'full cloud smoke, no deploy yet'
+                    } else if (normalized == 'backend-preparation') {
+                        category = 'transitional production/deploy branch'
+                        policy = 'full cloud smoke, no deploy'
+                    } else if (normalized ==~ /^feature\/.+/) {
+                        category = 'feature branch'
+                        policy = 'validation only'
+                    } else if (normalized ==~ /^bugfix\/.+/) {
+                        category = 'bugfix branch'
+                        policy = 'full cloud smoke'
+                    } else if (normalized ==~ /^hotfix\/.+/) {
+                        category = 'hotfix branch'
+                        policy = 'full cloud smoke, manual QA approval required before merge to main'
+                    }
+
+                    // Export for later stages and also show clearly in the Jenkins log
+                    env.BRANCH_NORMALIZED = normalized
+                    env.BRANCH_CATEGORY = category
+                    env.CI_POLICY = policy
+
+                    echo "Raw BRANCH_NAME: ${rawBranchName}"
+                    echo "Raw GIT_BRANCH: ${rawGITBranch}"
+                    echo "Normalized branch: ${env.BRANCH_NORMALIZED}"
+                    echo "Branch category: ${env.BRANCH_CATEGORY}"
+                    echo "Selected CI policy: ${env.CI_POLICY}"
+                }
+            }
+        }
+
         stage('Install dependencies') {
             steps {
                 // Prefer a clean, reproducible install from the committed

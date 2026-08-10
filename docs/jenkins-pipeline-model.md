@@ -61,3 +61,34 @@ main       ──▶ full cloud smoke                 ──▶ (future) control
 - [branch-management.md](branch-management.md) — branch model this pipeline targets
 - [release-flow.md](release-flow.md) — where Jenkins fits in a normal release
 - [hotfix-flow.md](hotfix-flow.md) — where Jenkins fits in an urgent fix
+
+## Milestone 33 — Branch-aware pipeline
+
+Milestone 33 adds branch detection and a simple policy decision stage,
+**Determine branch policy**, to the `Jenkinsfile`. It reads `BRANCH_NAME`
+(preferred, for a future Multibranch Pipeline) and falls back to
+`GIT_BRANCH` (current single-branch Pipeline from SCM), normalizes the
+value (strips `refs/heads/`, `refs/remotes/origin/`, `origin/`), and prints
+the raw `BRANCH_NAME`, raw `GIT_BRANCH`, normalized branch name, branch
+category, and selected CI policy into the Jenkins log.
+
+Normalized branch → category → CI policy:
+
+| Normalized branch     | Category                                | CI policy |
+|------------------------|------------------------------------------|-----------|
+| `main`                  | production branch                        | full cloud smoke, no deploy yet |
+| `develop`               | integration/staging branch               | full cloud smoke, no deploy yet |
+| `backend-preparation`   | transitional production/deploy branch    | full cloud smoke, no deploy |
+| `feature/*`             | feature branch                           | validation only |
+| `bugfix/*`              | bugfix branch                            | full cloud smoke |
+| `hotfix/*`              | hotfix branch                            | full cloud smoke, manual QA approval required before merge to `main` |
+| anything else           | unknown branch                           | full cloud smoke (warning: unrecognized branch) |
+
+Behavior note: the current milestone only adds detection, classification,
+and logging — it does not yet change which steps run per branch. The
+pipeline still performs the same installation, Playwright browser install,
+credential validation, `npm run test:cloud`, and artifact archival steps
+for every branch, so existing successful behavior remains unchanged. Wiring
+the CI policy to actually gate/vary steps (e.g. skipping the full suite on
+`feature/*`, adding an approval gate for `hotfix/*`) is left for a future
+milestone.
