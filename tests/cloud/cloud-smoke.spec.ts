@@ -121,6 +121,18 @@ test.describe('Language smoke', () => {
 
 // ── Test 4 — Auth smoke ─────────────────────────────────────────────────────
 // Skips (does not fail) when no dedicated cloud test user is configured.
+//
+// Milestone 33B note: this test and the two below it (Create listing smoke,
+// Upload smoke) all sign in as the same dedicated cloud test user and, with
+// fullyParallel, may run concurrently. This is safe to leave parallel: each
+// test gets its own isolated browser context, signin issues an independent
+// JWT per call (no server-side single-session invalidation), and each test
+// only touches its own uniquely-titled listing — there's no shared state for
+// concurrent signins to collide on, so forcing the suite (or just these
+// three) to run serial would trade away parallel runtime for no stability
+// gain. The one real shared resource is the backend's per-IP signin rate
+// limit (20 req/15min) — comfortably above what this suite's retries can
+// produce, but worth knowing if a future test bumps signin call volume.
 
 test.describe('Auth smoke', () => {
     test('sign in and sign out with the dedicated cloud test user', async ({ page }) => {

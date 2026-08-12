@@ -5,12 +5,76 @@ import { COLD_START_TIMEOUT } from './cloud-env';
 // (not direct API calls) so the tests exercise the same paths a real user
 // would — matching how the manual browser smoke was performed.
 
+// Reads the auth modal's currently-visible error text, if any — used to
+// enrich signIn() failures with the same message a real user would see.
+async function readAuthErrorText(page: Page): Promise<string | null> {
+    const authError = page.locator('#authFormError');
+    const visible = await authError.isVisible().catch(() => false);
+    if (!visible) return null;
+    const text = await authError.textContent().catch(() => null);
+    return text?.trim() || null;
+}
+
+// Signs in through the real UI (not a direct API call — see the top-of-file
+// note). Stabilized for Jenkins per Milestone 33B: the previous version
+// clicked submit and immediately raced a 15s wait on #authActionsUser, with
+// no visibility into *why* it was still hidden if the API/UI update lagged
+// behind under CI load. This version pins down each stage of the flow
+// (modal open → API response → UI update) and throws a diagnostic error at
+// whichever stage actually failed, instead of a bare locator timeout.
 export async function signIn(page: Page, email: string, password: string) {
-    await page.getByTestId('auth-signin-button').click();
+    // Open the sign-in modal only if it isn't already open/on the right tab —
+    // lets signIn() be called safely regardless of the auth UI's current state.
+    const signInForm = page.locator('#authSignInForm');
+    if (!(await signInForm.isVisible().catch(() => false))) {
+        await page.getByTestId('auth-signin-button').click();
+        await expect(signInForm).toBeVisible({ timeout: 15_000 });
+    }
+
     await page.locator('#signin-email').fill(email);
     await page.locator('#signin-password').fill(password);
-    await page.locator('#authSignInForm button[type="submit"]').click();
-    await expect(page.locator('#authActionsUser')).toBeVisible({ timeout: 15_000 });
+
+    // Start listening for the API response *before* clicking submit, so a
+    // response that comes back fast can never be missed by a listener that
+    // was attached too late.
+    const signinResponsePromise = page.waitForResponse(
+        response => response.url().includes('/api/auth/signin') && response.request().method() === 'POST',
+        { timeout: 30_000 }
+    );
+
+    await signInForm.locator('button[type="submit"]').click();
+
+    const response = await signinResponsePromise;
+
+    if (response.status() !== 200) {
+        const body = await response.text().catch(() => '<body unavailable>');
+        const authErrorText = await readAuthErrorText(page);
+        throw new Error(
+            `signIn(${email}): POST /api/auth/signin returned ${response.status()} (expected 200).\n` +
+            `Response body: ${body}\n` +
+            `Visible auth error: ${authErrorText ?? '<none>'}`
+        );
+    }
+
+    const userMenu = page.locator('#authActionsUser');
+    try {
+        // CI-friendly timeout: a Jenkins runner can take noticeably longer than
+        // a local machine to apply the post-signin DOM update even after the
+        // API has already responded 200.
+        await expect(userMenu).toBeVisible({ timeout: 30_000 });
+    } catch {
+        const exists = await userMenu.count() > 0;
+        const classAttr = exists ? await userMenu.getAttribute('class').catch(() => null) : null;
+        const authErrorText = await readAuthErrorText(page);
+        throw new Error(
+            `signIn(${email}): sign-in API responded 200 but #authActionsUser never became ` +
+            `visible within 30s.\n` +
+            `#authActionsUser exists: ${exists}\n` +
+            `#authActionsUser class: ${classAttr ?? '<n/a>'}\n` +
+            `Visible auth error: ${authErrorText ?? '<none>'}\n` +
+            `Current URL: ${page.url()}`
+        );
+    }
 }
 
 export async function signOut(page: Page) {
