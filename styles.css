@@ -134,6 +134,7 @@ main {
 }
 .hero h1 { font-size: 2.4rem; margin-bottom: 0.875rem; }
 .hero p  { font-size: 1.05rem; color: var(--text-2); max-width: 580px; margin: 0 auto; }
+.hero-note { font-size: 0.85rem; color: var(--text-2); opacity: 0.75; margin-top: 0.875rem; }
 
 .action-cards {
     display: grid;

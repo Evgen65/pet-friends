@@ -274,6 +274,7 @@ const TRANSLATIONS = {
 
         'home.hero.title': 'Welcome to Pet Friends',
         'home.hero.text':  'A community platform connecting animal lovers. Whether you found a stray, lost your pet, or want to give or find a loving home — you\'re in the right place.',
+        'home.ciNote':     'Help pets find their way home — verified with cloud smoke tests.',
 
         'home.card.found.title': 'I Found a Pet',
         'home.card.found.text':  'Found a lost or stray animal? Post a listing so the owner can find their companion.',
@@ -498,6 +499,7 @@ const TRANSLATIONS = {
 
         'home.hero.title': 'Добро пожаловать в Pet Friends',
         'home.hero.text':  'Сообщество для любителей животных. Нашли потеряшку, потеряли питомца или хотите взять животное в дом — вы в нужном месте.',
+        'home.ciNote':     'Помогаем питомцам найти дорогу домой — проверено cloud smoke тестами.',
 
         'home.card.found.title': 'Нашёл питомца',
         'home.card.found.text':  'Нашли потерявшееся животное? Разместите объявление, чтобы хозяин мог найти своего друга.',
@@ -722,6 +724,7 @@ const TRANSLATIONS = {
 
         'home.hero.title': 'ברוכים הבאים ל-Pet Friends',
         'home.hero.text':  'פלטפורמה קהילתית לאוהבי בעלי חיים. מצאתם חיה, איבדתם חיה, או רוצים לאמץ — הגעתם למקום הנכון.',
+        'home.ciNote':     'עוזרים לחיות מחמד למצוא את הדרך הביתה — נבדק באמצעות בדיקות cloud smoke.',
 
         'home.card.found.title': 'מצאתי חיה',
         'home.card.found.text':  'מצאתם חיה אבודה? פרסמו מודעה כדי שהבעלים יוכל למצוא את חברו.',
